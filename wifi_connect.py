@@ -276,7 +276,6 @@ def scheme_all():
     
     :return: list - list of schemes as json string
     """
-
     schemes = Scheme.all()
     res = []
 
