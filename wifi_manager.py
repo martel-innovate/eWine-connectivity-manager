@@ -116,8 +116,8 @@ def network_list():
     return jsonify(message=schemes, code=200)
 
 
-@app.route('/networks/nic=<nic>_ssid=<ssid>', methods=['POST'])
-@app.route('/networks/nic=<nic>_ssid=<ssid>_passkey=<passkey>', methods=['POST'])
+@app.route('/networks/<nic>:<ssid>', methods=['POST'])
+@app.route('/networks/<nic>:<ssid>:<passkey>', methods=['POST'])
 @require_api_key
 def network_save(nic, ssid, passkey=None):
     """
@@ -147,7 +147,7 @@ def network_save(nic, ssid, passkey=None):
     return resp
 
 
-@app.route('/networks/nic=<nic>_ssid=<ssid>', methods=['DELETE'])
+@app.route('/networks/<nic>:<ssid>', methods=['DELETE'])
 @require_api_key
 def delete(nic, ssid):
     """
@@ -173,8 +173,8 @@ def delete(nic, ssid):
     return jsonify(message='deleted {}:{}'.format(nic, ssid), code=200)
 
 
-@app.route('/connect/nic=<nic>_ssid=<ssid>', methods=['POST'])
-@app.route('/connect/nic=<nic>_ssid=<ssid>_passkey=<passkey>', methods=['POST'])
+@app.route('/connect/<nic>:<ssid>', methods=['POST'])
+@app.route('/connect/<nic>:<ssid>:<passkey>', methods=['POST'])
 @require_api_key
 def connect(nic, ssid, passkey=None):
     """
