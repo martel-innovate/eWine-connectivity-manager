@@ -1,11 +1,12 @@
-#!/usr/bin/python
-from __future__ import print_function
-
-import sqlite3
 from wifi import Cell, Scheme
 from wifi.exceptions import ConnectionError, InterfaceError
 
-import sys, argparse, subprocess, sched, time
+import sys
+import argparse
+import subprocess
+import sched
+import time
+import sqlite3
 
 MAX_RETRIES = 3
 RETRY_AFTER = 3  # seconds
@@ -24,20 +25,42 @@ class ApiSchemeExistsException(ApiException):
         self.scheme = scheme
 
 
-def find_cell(nic, ssid):
+def scheme_all():
     """
-    look up for cell by network interface and ssid
-    
+    return all schemes stored in /etc/network/interfaces
+
+    :return: list - list of schemes as json string
+    """
+    schemes = Scheme.all()
+    res = []
+
+    for s in schemes:
+        res.append(scheme_to_dict(s))
+
+    return res
+
+
+def cell_all(nic):
+    """
+    return all cells available on the given network interface, sorted by signal
+
     :param nic: str - network interface
-    :param ssid: str - network name
-    :return: wifi.Cell - the first cell that matches the arguments
+    :return: list - list of cells as json string
     """
 
-    cells = Cell.where(nic, lambda c: c.ssid.lower() == ssid.lower())
-    # if the cell doesn't exist, cell[0] will raise an IndexError
-    cell = cells[0]
+    res = []
 
-    return cell
+    try:
+        cells = Cell.all(nic)
+    except InterfaceError as e:
+        raise ApiException(e, 404)
+
+    cells.sort(key=lambda cell: cell.signal, reverse=True)
+
+    for c in cells:
+        res.append(cell_to_dict(c))
+
+    return res
 
 
 def ssid_save(nic, ssid, passkey, lat, lng, db=None):
@@ -47,14 +70,14 @@ def ssid_save(nic, ssid, passkey, lat, lng, db=None):
     :param nic: str - network interface
     :param ssid: str - network name
     :param passkey: str - authentication passphrase
-    :param lng: 
-    :param lat: 
+    :param lat:
+    :param lng:
     :param db: Connection - database handle
     :return: wifi.Scheme - the scheme just created
     """
 
     try:
-        cell = find_cell(nic, ssid)
+        cell = cell_find(nic, ssid)
     except IndexError:
         raise ApiException("cell {}: not found".format(ssid), 404)
 
@@ -91,36 +114,6 @@ def ssid_save(nic, ssid, passkey, lat, lng, db=None):
     raise ApiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
 
 
-def ssid_delete(nic, ssid, db=None):
-    """
-    delete a connection scheme from /etc/network/interfaces
-    
-    :param nic: str - network interface
-    :param ssid: str - network name
-    :param db: 
-    :return:
-    """
-
-    scheme = Scheme.find(nic, ssid)
-
-    if scheme is None:
-        # scheme doesn't exist, raise exception and exit
-        raise ApiException("scheme {}: not found".format(ssid), 404)
-
-    scheme.delete()
-    print("deleted scheme {}".format(ssid))
-
-    # update database
-    if db is not None:
-        try:
-            db.execute("DELETE FROM networks WHERE nic=? AND ssid=?;", (nic, ssid))
-            db.commit()
-        except sqlite3.Error as e:
-            # failed to sync with database, revert changes
-            scheme.save()
-            raise e
-
-
 def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
     """
     connect to a network
@@ -128,8 +121,8 @@ def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
     :param nic: str - network interface
     :param ssid: str - network name
     :param passkey: str - authentication passkey
-    :param lng: 
-    :param lat: 
+    :param lat:
+    :param lng:
     :param db: Connection - database handle
     :return: int - status code
     """
@@ -175,7 +168,7 @@ def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
             if subprocess.call(["sudo", "ifup", nic]) != 0:
                 # make sure interface is up in case of failure
                 print("ifup error: nonzero exit code")
-                raise ApiException(e.message, 500)
+                raise ApiException(e, 500)
 
             if attempts < MAX_RETRIES:
                 # try again
@@ -183,7 +176,90 @@ def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
                 countdown_retry()
             else:
                 # failed to connect
-                raise ApiException(e.message, 500)
+                raise ApiException(e, 500)
+
+
+def ssid_find(nic, ssid):
+    """
+    find a connection scheme for deletion
+
+    :param nic: str - network interface
+    :param ssid: str - network name
+    :return: the scheme that matches the arguments
+    """
+
+    scheme = Scheme.find(nic, ssid)
+
+    if scheme is None:
+        # scheme doesn't exist, raise exception and exit
+        raise ApiException("scheme {}: not found".format(ssid), 404)
+
+    return scheme
+
+
+def ssid_delete(scheme, db=None):
+    """
+    delete a connection scheme
+    
+    :param scheme: Scheme - the scheme to be deleted
+    :param db: Connection - handle onto sqlite3 database
+    :return:
+    """
+
+    nic = scheme.interface
+    ssid = scheme.name
+
+    scheme.delete()
+    print("deleted scheme {}:{}".format(nic, ssid))
+
+    if db is not None:
+        # update database
+        try:
+            db.execute("DELETE FROM networks WHERE nic=? AND ssid=?;", (nic, ssid))
+            db.commit()
+        except sqlite3.Error as e:
+            # failed to sync with database, revert changes
+            scheme.save()
+            raise e
+
+
+def ssid_delete_all(db=None):
+    """
+    delete all connection schemes
+
+    :param db: Connection - handle onto sqlite3 database
+    :return: tuple with the total number of schemes and the number of deleted schemes
+    """
+
+    schemes = Scheme.all()
+    total = 0
+    deleted = 0
+
+    for s in schemes:
+        total += 1
+        try:
+            ssid_delete(s, db)
+            deleted += 1
+        except sqlite3.Error:
+            print("scheme not deleted {}:{}".format(s.interface, s.name))
+
+    return total, deleted
+
+
+def cell_find(nic, ssid):
+    """
+    look up for cell by network interface and ssid
+
+    :param nic: str - network interface
+    :param ssid: str - network name
+    :return: wifi.Cell - the first cell that matches the arguments
+    """
+
+    cells = Cell.where(nic, lambda c: c.ssid.lower() == ssid.lower())
+    # if the cell doesn't exist, cell[0] will raise an IndexError
+    cell = cells[0]
+
+    return cell
 
 
 def cell_to_dict(cell):
@@ -212,29 +288,6 @@ def cell_to_dict(cell):
     return cell_dict
 
 
-def cell_all(nic):
-    """
-    return all cells available on the given network interface, sorted by signal
-    
-    :param nic: str - network interface
-    :return: list - list of cells as json string
-    """
-
-    res = []
-
-    try:
-        cells = Cell.all(nic)
-    except InterfaceError as e:
-        raise ApiException(e.message, 404)
-
-    cells.sort(key=lambda cell: cell.signal, reverse=True)
-
-    for c in cells:
-        res.append(cell_to_dict(c))
-
-    return res
-
-
 def scheme_to_dict(scheme):
     """
     convert a scheme object to dictionary
@@ -252,39 +305,6 @@ def scheme_to_dict(scheme):
     return scheme_dict
 
 
-def scheme_get(nic, ssid):
-    """
-    retrieve a scheme by network interface and name
-    
-    :param nic: str - network interface
-    :param ssid: str - network name
-    :return: dict - the scheme as dictionary, or None
-    """
-
-    schemes = Scheme.all()
-
-    for s in schemes:
-        if s.interface == nic and s.name == ssid:
-            return scheme_to_dict(s)
-
-    return None
-
-
-def scheme_all():
-    """
-    return all schemes stored in /etc/network/interfaces
-    
-    :return: list - list of schemes as json string
-    """
-    schemes = Scheme.all()
-    res = []
-
-    for s in schemes:
-        res.append(scheme_to_dict(s))
-
-    return res
-
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Switch between wireless connections.')
@@ -296,7 +316,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.delete:
-        exit_code = ssid_delete(args.nic, args.ssid)
+        exit_code = ssid_delete(ssid_find(args.nic, args.ssid))
     else:
         exit_code = ssid_connect(args.nic, args.ssid, args.passkey, None, None)
 

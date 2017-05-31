@@ -1,13 +1,13 @@
-from __future__ import print_function
 from binascii import hexlify
 from functools import wraps
-from eve import Eve
-from flask import request, g, jsonify
-from wifi_connect import ssid_save, ssid_connect, ssid_delete, cell_all, scheme_all, ApiException
+from flask import Flask, request, g, jsonify
+from wifi_connect import ssid_save, ssid_connect, ssid_find, ssid_delete, ssid_delete_all, cell_all, scheme_all, \
+    ApiException
+
 import os
 import sqlite3
 
-app = Eve()
+app = Flask(__name__)
 
 
 def require_api_key(route_function):
@@ -32,12 +32,14 @@ def get_db():
     """
     get a handle onto sqlite3 database
     
-    :return: Connection - database handle 
+    :return: Connection - handle onto sqlite3 database
     """
 
     db = getattr(g, '_database', None)
+
     if db is None:
         db = g._database = sqlite3.connect(app.config['DB_INSTANCE'])
+
     return db
 
 
@@ -58,11 +60,13 @@ def init_db():
 def close_connection(exception):
     """
     close connection to sqlite3 database
-    
-    :param exception: 
+
+    :param exception:
     :return: 
     """
+
     db = getattr(g, '_database', None)
+
     if db is not None:
         db.close()
 
@@ -73,7 +77,7 @@ def db_networks():
     """
     dump table networks
 
-    :return: 
+    :return:
     """
 
     cursor = get_db().execute("SELECT * FROM networks;")
@@ -81,26 +85,6 @@ def db_networks():
     cursor.close()
 
     return jsonify(message=rows, code=200)
-
-
-@app.route('/networks/nic=<nic>')
-@require_api_key
-def network_scan(nic):
-    """
-    return all cells available on a network interface
-    
-    :param nic: network interface
-    :return: response as JSON
-    """
-
-    try:
-        cells = cell_all(nic)
-    except ApiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
-
-    return jsonify(message=cells, code=200)
 
 
 @app.route('/networks')
@@ -114,6 +98,26 @@ def network_list():
 
     schemes = scheme_all()
     return jsonify(message=schemes, code=200)
+
+
+@app.route('/networks/<nic>')
+@require_api_key
+def network_scan(nic):
+    """
+    return all cells available on a network interface
+
+    :param nic: network interface
+    :return: response as JSON
+    """
+
+    try:
+        cells = cell_all(nic)
+    except ApiException as e:
+        resp = jsonify(message=e.message, code=e.code)
+        resp.status_code = e.code
+        return resp
+
+    return jsonify(message=cells, code=200)
 
 
 @app.route('/networks/<nic>:<ssid>', methods=['POST'])
@@ -137,7 +141,7 @@ def network_save(nic, ssid, passkey=None):
         return resp
     except sqlite3.Error as e:
         code = 500
-        resp = jsonify(message=e.message, code=code)
+        resp = jsonify(message=e, code=code)
         resp.status_code = code
         return resp
 
@@ -147,39 +151,13 @@ def network_save(nic, ssid, passkey=None):
     return resp
 
 
-@app.route('/networks/<nic>:<ssid>', methods=['DELETE'])
-@require_api_key
-def delete(nic, ssid):
-    """
-    delete a connection scheme from /etc/network/interfaces
-
-    :param nic: network interface
-    :param ssid: network name 
-    :return: response as JSON
-    """
-
-    try:
-        ssid_delete(nic, ssid, get_db())
-    except ApiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
-    except sqlite3.Error as e:
-        code = 500
-        resp = jsonify(message=e.message, code=code)
-        resp.status_code = code
-        return resp
-
-    return jsonify(message='deleted {}:{}'.format(nic, ssid), code=200)
-
-
 @app.route('/connect/<nic>:<ssid>', methods=['POST'])
 @app.route('/connect/<nic>:<ssid>:<passkey>', methods=['POST'])
 @require_api_key
-def connect(nic, ssid, passkey=None):
+def network_connect(nic, ssid, passkey=None):
     """
     connect to a network
-    
+
     :param nic: network interface
     :param ssid: network name
     :param passkey: authentication passphrase
@@ -196,7 +174,47 @@ def connect(nic, ssid, passkey=None):
     return jsonify(message='connected {}:{}'.format(nic, ssid), code=200)
 
 
+@app.route('/networks/<nic>:<ssid>', methods=['DELETE'])
+@require_api_key
+def network_delete(nic, ssid):
+    """
+    delete a connection scheme from /etc/network/interfaces
+
+    :param nic: network interface
+    :param ssid: network name 
+    :return: response as JSON
+    """
+
+    try:
+        ssid_delete(ssid_find(nic, ssid), get_db())
+    except ApiException as e:
+        resp = jsonify(message=e.message, code=e.code)
+        resp.status_code = e.code
+        return resp
+    except sqlite3.Error as e:
+        code = 500
+        resp = jsonify(message=e, code=code)
+        resp.status_code = code
+        return resp
+
+    return jsonify(message='deleted {}:{}'.format(nic, ssid), code=200)
+
+
+@app.route('/networks', methods=['DELETE'])
+@require_api_key
+def network_delete_all():
+    """
+    delete all connection schemes from /etc/network/interfaces
+
+    :return:
+    """
+
+    total, deleted = ssid_delete_all(get_db())
+    return jsonify(message='deleted {}/{} schemes'.format(total, deleted), code=200)
+
+
 if __name__ == '__main__':
+
     API_KEY = hexlify(os.urandom(20)).decode()
     print('api key is: {}'.format(API_KEY))
 
