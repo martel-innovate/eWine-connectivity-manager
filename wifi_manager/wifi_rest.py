@@ -1,11 +1,12 @@
-from binascii import hexlify
-from functools import wraps
-from flask import Flask, request, g, jsonify
-from wifi_connect import ssid_save, ssid_connect, ssid_find, ssid_delete, ssid_delete_all, cell_all, scheme_all, \
-    ApiException
-
 import os
 import sqlite3
+from binascii import hexlify
+from functools import wraps
+
+from flask import Flask, request, g, jsonify
+
+from wifi_manager.wifi_core import ssid_save, ssid_connect, ssid_find, ssid_delete, ssid_delete_all, cell_all, scheme_all, \
+    ApiException
 
 app = Flask(__name__)
 
