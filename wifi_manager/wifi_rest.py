@@ -5,7 +5,8 @@ from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_manager.wifi_core import ssid_save, ssid_connect, ssid_find, ssid_delete, ssid_delete_all, cell_all, scheme_all, \
+from wifi_manager.wifi_core import ssid_save, ssid_connect, ssid_find, ssid_delete, ssid_delete_all, cell_all, \
+    scheme_all, \
     ApiException
 
 app = Flask(__name__)
@@ -215,7 +216,6 @@ def network_delete_all():
 
 
 if __name__ == '__main__':
-
     API_KEY = hexlify(os.urandom(20)).decode()
     print('api key is: {}'.format(API_KEY))
 
