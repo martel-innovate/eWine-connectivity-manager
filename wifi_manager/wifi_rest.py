@@ -5,7 +5,7 @@ from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_manager.wifi_core import ssid_save, ssid_connect, ssid_find, ssid_delete, ssid_delete_all, cell_all, \
+from wifi_core import ssid_save, ssid_connect, ssid_find, ssid_delete, ssid_delete_all, cell_all, \
     scheme_all, \
     ApiException
 
@@ -219,7 +219,7 @@ if __name__ == '__main__':
     API_KEY = hexlify(os.urandom(20)).decode()
     print('api key is: {}'.format(API_KEY))
 
-    app.config['DB_PATH'] = '/home/pi/eWine/schema'
+    app.config['DB_PATH'] = '/home/pi/eWine/wifi_manager/schema'
     app.config['DB_SOURCE'] = os.path.join(app.config['DB_PATH'], 'schema.sql')
     app.config['DB_INSTANCE'] = os.path.join(app.config['DB_PATH'], 'schema.db')
 
