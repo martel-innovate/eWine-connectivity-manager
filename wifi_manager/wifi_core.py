@@ -9,7 +9,7 @@ import time
 import sqlite3
 
 MAX_RETRIES = 3
-RETRY_AFTER = 3  # seconds
+RETRY_AFTER = 5  # seconds
 SCHEDULER = sched.scheduler(time.time, time.sleep)
 
 
@@ -177,6 +177,21 @@ def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
             else:
                 # failed to connect
                 raise ApiException(e, 500)
+
+
+def ssid_disconnect(nic):
+    """
+    disconnect a network interface
+
+    :param nic: str - network interface
+    :return:
+    """
+
+    if subprocess.call(["sudo", "ifdown", nic]) != 0:
+        raise ApiException("error bringing {} down".format(nic), 500)
+
+    if subprocess.call(["sudo", "ifup", nic]) != 0:
+        raise ApiException("error bringing {} up".format(nic), 500)
 
 
 def ssid_find(nic, ssid):

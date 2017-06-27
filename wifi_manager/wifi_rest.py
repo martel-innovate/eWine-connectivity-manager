@@ -5,7 +5,7 @@ from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_core import ssid_save, ssid_connect, ssid_find, ssid_delete, ssid_delete_all, cell_all, \
+from wifi_core import ssid_save, ssid_connect, ssid_disconnect, ssid_find, ssid_delete, ssid_delete_all, cell_all, \
     scheme_all, \
     ApiException
 
@@ -174,6 +174,26 @@ def network_connect(nic, ssid, passkey=None):
         return resp
 
     return jsonify(message='connected {}:{}'.format(nic, ssid), code=200)
+
+
+@app.route('/disconnect/<nic>', methods=['POST'])
+@require_api_key
+def network_disconnect(nic):
+    """
+    disconnect a network interface
+
+    :param nic: str - network interface
+    :return:
+    """
+
+    try:
+        ssid_disconnect(nic)
+    except ApiException as e:
+        resp = jsonify(message=e.message, code=e.code)
+        resp.status_code = e.code
+        return resp
+
+    return jsonify(message='disconnected {}'.format(nic), code=200)
 
 
 @app.route('/networks/<nic>:<ssid>', methods=['DELETE'])
