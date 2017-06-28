@@ -102,18 +102,18 @@ def network_list():
     return jsonify(message=schemes, code=200)
 
 
-@app.route('/networks/<nic>')
+@app.route('/networks/<iface>')
 @require_api_key
-def network_scan(nic):
+def network_scan(iface):
     """
-    return all cells available on a network interface
+    return all wifi networks available on a network interface
 
-    :param nic: network interface
+    :param iface: network interface
     :return: response as JSON
     """
 
     try:
-        cells = cell_all(nic)
+        cells = cell_all(iface)
     except ApiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -122,21 +122,21 @@ def network_scan(nic):
     return jsonify(message=cells, code=200)
 
 
-@app.route('/networks/<nic>:<ssid>', methods=['POST'])
-@app.route('/networks/<nic>:<ssid>:<passkey>', methods=['POST'])
+@app.route('/networks/<iface>:<ssid>', methods=['POST'])
+@app.route('/networks/<iface>:<ssid>:<passkey>', methods=['POST'])
 @require_api_key
-def network_save(nic, ssid, passkey=None):
+def network_save(iface, ssid, passkey=None):
     """
     store new network scheme in /etc/network/interfaces
     
-    :param nic: network interface
+    :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passphrase 
     :return: response as JSON
     """
 
     try:
-        ssid_save(nic, ssid, passkey, None, None, get_db())
+        ssid_save(iface, ssid, passkey, None, None, get_db())
     except ApiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -148,67 +148,67 @@ def network_save(nic, ssid, passkey=None):
         return resp
 
     code = 201
-    resp = jsonify(message='created {}:{}'.format(nic, ssid), code=code)
+    resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
     resp.status_code = code
     return resp
 
 
-@app.route('/connect/<nic>:<ssid>', methods=['POST'])
-@app.route('/connect/<nic>:<ssid>:<passkey>', methods=['POST'])
+@app.route('/connect/<iface>:<ssid>', methods=['POST'])
+@app.route('/connect/<iface>:<ssid>:<passkey>', methods=['POST'])
 @require_api_key
-def network_connect(nic, ssid, passkey=None):
+def network_connect(iface, ssid, passkey=None):
     """
     connect to a network
 
-    :param nic: network interface
+    :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passphrase
     :return: response as JSON
     """
 
     try:
-        ssid_connect(nic, ssid, passkey, None, None, get_db())
+        ssid_connect(iface, ssid, passkey, None, None, get_db())
     except ApiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
         return resp
 
-    return jsonify(message='connected {}:{}'.format(nic, ssid), code=200)
+    return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
 
 
-@app.route('/disconnect/<nic>', methods=['POST'])
+@app.route('/disconnect/<iface>', methods=['POST'])
 @require_api_key
-def network_disconnect(nic):
+def network_disconnect(iface):
     """
     disconnect a network interface
 
-    :param nic: str - network interface
+    :param iface: str - network interface
     :return:
     """
 
     try:
-        ssid_disconnect(nic)
+        ssid_disconnect(iface)
     except ApiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
         return resp
 
-    return jsonify(message='disconnected {}'.format(nic), code=200)
+    return jsonify(message='disconnected {}'.format(iface), code=200)
 
 
-@app.route('/networks/<nic>:<ssid>', methods=['DELETE'])
+@app.route('/networks/<iface>:<ssid>', methods=['DELETE'])
 @require_api_key
-def network_delete(nic, ssid):
+def network_delete(iface, ssid):
     """
-    delete a connection scheme from /etc/network/interfaces
+    delete a connection scheme from /etc/network/interfaces and sqlite database
 
-    :param nic: network interface
+    :param iface: network interface
     :param ssid: network name 
     :return: response as JSON
     """
 
     try:
-        ssid_delete(ssid_find(nic, ssid), get_db())
+        ssid_delete(ssid_find(iface, ssid), get_db())
     except ApiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -219,14 +219,14 @@ def network_delete(nic, ssid):
         resp.status_code = code
         return resp
 
-    return jsonify(message='deleted {}:{}'.format(nic, ssid), code=200)
+    return jsonify(message='deleted {}:{}'.format(iface, ssid), code=200)
 
 
 @app.route('/networks', methods=['DELETE'])
 @require_api_key
 def network_delete_all():
     """
-    delete all connection schemes from /etc/network/interfaces
+    delete all connection schemes from /etc/network/interfaces and sqlite database
 
     :return:
     """

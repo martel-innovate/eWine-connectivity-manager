@@ -40,18 +40,18 @@ def scheme_all():
     return res
 
 
-def cell_all(nic):
+def cell_all(iface):
     """
     return all cells available on the given network interface, sorted by signal
 
-    :param nic: str - network interface
+    :param iface: str - network interface
     :return: list - list of cells as json string
     """
 
     res = []
 
     try:
-        cells = Cell.all(nic)
+        cells = Cell.all(iface)
     except InterfaceError as e:
         raise ApiException(e, 404)
 
@@ -63,11 +63,11 @@ def cell_all(nic):
     return res
 
 
-def ssid_save(nic, ssid, passkey, lat, lng, db=None):
+def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     """
     store new network scheme in /etc/network/interfaces
     
-    :param nic: str - network interface
+    :param iface: str - network interface
     :param ssid: str - network name
     :param passkey: str - authentication passphrase
     :param lat:
@@ -77,11 +77,11 @@ def ssid_save(nic, ssid, passkey, lat, lng, db=None):
     """
 
     try:
-        cell = cell_find(nic, ssid)
+        cell = cell_find(iface, ssid)
     except IndexError:
         raise ApiException("cell {}: not found".format(ssid), 404)
 
-    scheme = Scheme.find(nic, ssid)
+    scheme = Scheme.find(iface, ssid)
 
     # save scheme if it doesn't exist
     if scheme is None:
@@ -89,7 +89,7 @@ def ssid_save(nic, ssid, passkey, lat, lng, db=None):
         if cell.encrypted and passkey is None:
             raise ApiException("ssid {}: passkey required".format(ssid), 400)
 
-        scheme = Scheme.for_cell(nic, ssid, cell, passkey)
+        scheme = Scheme.for_cell(iface, ssid, cell, passkey)
         scheme.save()
 
         if db is not None:
@@ -101,8 +101,8 @@ def ssid_save(nic, ssid, passkey, lat, lng, db=None):
 
             # update database
             try:
-                query = "INSERT INTO networks(nic, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
-                db.execute(query, (nic, ssid, passkey, lat, lng))
+                query = "INSERT INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
+                db.execute(query, (iface, ssid, passkey, lat, lng))
                 db.commit()
             except sqlite3.Error as e:
                 # failed to sync with database, revert changes
@@ -114,11 +114,11 @@ def ssid_save(nic, ssid, passkey, lat, lng, db=None):
     raise ApiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
 
 
-def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
+def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
     """
     connect to a network
 
-    :param nic: str - network interface
+    :param iface: str - network interface
     :param ssid: str - network name
     :param passkey: str - authentication passkey
     :param lat:
@@ -147,7 +147,7 @@ def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
         SCHEDULER.run()
 
     try:
-        scheme = ssid_save(nic, ssid, passkey, lat, lng, db)
+        scheme = ssid_save(iface, ssid, passkey, lat, lng, db)
     except ApiSchemeExistsException as e:
         scheme = e.scheme
     except ApiException as e:
@@ -165,7 +165,7 @@ def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
         except ConnectionError as e:
             print("failed")
 
-            if subprocess.call(["sudo", "ifup", nic]) != 0:
+            if subprocess.call(["sudo", "ifup", iface]) != 0:
                 # make sure interface is up in case of failure
                 print("ifup error: nonzero exit code")
                 raise ApiException(e, 500)
@@ -179,31 +179,31 @@ def ssid_connect(nic, ssid, passkey, lat, lng, db=None):
                 raise ApiException(e, 500)
 
 
-def ssid_disconnect(nic):
+def ssid_disconnect(iface):
     """
     disconnect a network interface
 
-    :param nic: str - network interface
+    :param iface: str - network interface
     :return:
     """
 
-    if subprocess.call(["sudo", "ifdown", nic]) != 0:
-        raise ApiException("error bringing {} down".format(nic), 500)
+    if subprocess.call(["sudo", "ifdown", iface]) != 0:
+        raise ApiException("error bringing {} down".format(iface), 500)
 
-    if subprocess.call(["sudo", "ifup", nic]) != 0:
-        raise ApiException("error bringing {} up".format(nic), 500)
+    if subprocess.call(["sudo", "ifup", iface]) != 0:
+        raise ApiException("error bringing {} up".format(iface), 500)
 
 
-def ssid_find(nic, ssid):
+def ssid_find(iface, ssid):
     """
     find a connection scheme for deletion
 
-    :param nic: str - network interface
+    :param iface: str - network interface
     :param ssid: str - network name
     :return: the scheme that matches the arguments
     """
 
-    scheme = Scheme.find(nic, ssid)
+    scheme = Scheme.find(iface, ssid)
 
     if scheme is None:
         # scheme doesn't exist, raise exception and exit
@@ -221,16 +221,16 @@ def ssid_delete(scheme, db=None):
     :return:
     """
 
-    nic = scheme.interface
+    iface = scheme.interface
     ssid = scheme.name
 
     scheme.delete()
-    print("deleted scheme {}:{}".format(nic, ssid))
+    print("deleted scheme {}:{}".format(iface, ssid))
 
     if db is not None:
         # update database
         try:
-            db.execute("DELETE FROM networks WHERE nic=? AND ssid=?;", (nic, ssid))
+            db.execute("DELETE FROM networks WHERE iface=? AND ssid=?;", (iface, ssid))
             db.commit()
         except sqlite3.Error as e:
             # failed to sync with database, revert changes
@@ -261,16 +261,16 @@ def ssid_delete_all(db=None):
     return total, deleted
 
 
-def cell_find(nic, ssid):
+def cell_find(iface, ssid):
     """
     look up for cell by network interface and ssid
 
-    :param nic: str - network interface
+    :param iface: str - network interface
     :param ssid: str - network name
     :return: wifi.Cell - the first cell that matches the arguments
     """
 
-    cells = Cell.where(nic, lambda c: c.ssid.lower() == ssid.lower())
+    cells = Cell.where(iface, lambda c: c.ssid.lower() == ssid.lower())
     # if the cell doesn't exist, cell[0] will raise an IndexError
     cell = cells[0]
 
@@ -323,7 +323,7 @@ def scheme_to_dict(scheme):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Switch between wireless connections.')
-    parser.add_argument('nic', type=str, help='the network interface controller')
+    parser.add_argument('iface', type=str, help='the network interface controller')
     parser.add_argument('ssid', type=str, help='the name of the wireless network')
     parser.add_argument('-p', '--passkey', type=str, help='the passkey for network authentication')
     parser.add_argument('-d', '--delete', help='delete a network configuration scheme', action="store_true")
@@ -331,8 +331,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.delete:
-        exit_code = ssid_delete(ssid_find(args.nic, args.ssid))
+        exit_code = ssid_delete(ssid_find(args.iface, args.ssid))
     else:
-        exit_code = ssid_connect(args.nic, args.ssid, args.passkey, None, None)
+        exit_code = ssid_connect(args.iface, args.ssid, args.passkey, None, None)
 
     sys.exit(exit_code)
