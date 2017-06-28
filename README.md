@@ -11,8 +11,8 @@ The app listens by default on port 5000. Every request to the REST API must incl
 
 Here is a list of all API requests, the parameters they accept, and their purpose:
 
-| Request   | Parameters    | Purpose   |
-| --------- | ------------- | --------- |
+| Request | Parameters | Purpose |
+| --- | --- | --- |
 | GET /networks |  | retrieve all network configurations stored in /etc/network/interfaces |
 | GET /networks/`<iface>` | `iface`: the network interface to use for the wifi scan | scan a network interface for available wifi networks |
 | GET /db/networks |  | retrieve all network configurations stored in sqlite database |
