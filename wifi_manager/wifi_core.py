@@ -1,3 +1,4 @@
+from __future__ import print_function
 from wifi import Cell, Scheme
 from wifi.exceptions import ConnectionError, InterfaceError
 from pythonwifi.iwlibs import Wireless
@@ -32,8 +33,9 @@ def wifi_status(iface):
     :return: the network ssid or the empty string
     """
 
-    wifi = Wireless(iface)
-    return wifi.getEssid()
+    wifi = Wireless(str(iface))
+    ssid = wifi.getEssid()
+    return ssid
 
 
 def wifi_enable(iface):
