@@ -46,8 +46,6 @@ def cell_all(iface):
     :return: list - list of cells as json string
     """
 
-    ssid_enable(iface)
-
     try:
         cells = Cell.all(iface)
     except InterfaceError as e:
@@ -74,8 +72,6 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     :param db: Connection - database handle
     :return: wifi.Scheme - the scheme just created
     """
-
-    ssid_enable(iface)
 
     try:
         cell = cell_find(iface, ssid)
@@ -186,7 +182,7 @@ def ssid_enable(iface):
     """
 
     if subprocess.call(["sudo", "ifup", iface]) != 0:
-        raise ApiException("error bringing {} up".format(iface), 500)
+        raise ApiException("error enabling {}".format(iface), 500)
 
 
 def ssid_disable(iface):
@@ -198,7 +194,7 @@ def ssid_disable(iface):
     """
 
     if subprocess.call(["sudo", "ifdown", iface]) != 0:
-        raise ApiException("error bringing {} down".format(iface), 500)
+        raise ApiException("error disabling {}".format(iface), 500)
 
 
 def ssid_find(iface, ssid):

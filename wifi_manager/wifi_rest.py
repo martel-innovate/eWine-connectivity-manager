@@ -5,10 +5,8 @@ from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_core import ssid_save, ssid_connect, ssid_disable, ssid_find, ssid_delete, ssid_delete_all, \
-    cell_all, \
-    scheme_all, \
-    ApiException
+from wifi_core import ssid_connect, ssid_enable, ssid_disable, ssid_find, ssid_save, ssid_delete, ssid_delete_all, \
+    cell_all, scheme_all, ApiException
 
 app = Flask(__name__)
 
@@ -185,11 +183,31 @@ def network_connect(iface, ssid, passkey=None):
     return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
 
 
-@app.route('/disconnect/<iface>', methods=['POST'])
+@app.route('/enable/<iface>', methods=['POST'])
 @require_api_key
-def network_disconnect(iface):
+def network_enable(iface):
     """
-    disconnect a network interface
+    enable a network interface
+
+    :param iface: str - network interface
+    :return:
+    """
+
+    try:
+        ssid_enable(iface)
+    except ApiException as e:
+        resp = jsonify(message=e.message, code=e.code)
+        resp.status_code = e.code
+        return resp
+
+    return jsonify(message='enabled {}'.format(iface), code=200)
+
+
+@app.route('/disable/<iface>', methods=['POST'])
+@require_api_key
+def network_disable(iface):
+    """
+    disable a network interface
 
     :param iface: str - network interface
     :return:
@@ -202,7 +220,7 @@ def network_disconnect(iface):
         resp.status_code = e.code
         return resp
 
-    return jsonify(message='disconnected {}'.format(iface), code=200)
+    return jsonify(message='disabled {}'.format(iface), code=200)
 
 
 @app.route('/networks/<iface>:<ssid>', methods=['DELETE'])
