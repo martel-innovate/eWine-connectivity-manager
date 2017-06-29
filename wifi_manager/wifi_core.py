@@ -1,5 +1,6 @@
 from wifi import Cell, Scheme
 from wifi.exceptions import ConnectionError, InterfaceError
+from pythonwifi.iwlibs import Wireless
 
 import subprocess
 import sched
@@ -23,11 +24,23 @@ class WifiSchemeExistsException(WifiException):
         self.scheme = scheme
 
 
+def wifi_status(iface):
+    """
+    retrieve the network the interface is connected to
+
+    :param iface: network interface
+    :return: the network ssid or the empty string
+    """
+
+    wifi = Wireless(iface)
+    return wifi.getEssid()
+
+
 def wifi_enable(iface):
     """
     enable a network interface
 
-    :param iface: str - network interface
+    :param iface: network interface
     :return:
     """
 
@@ -39,7 +52,7 @@ def wifi_disable(iface):
     """
     disconnect a network interface
 
-    :param iface: str - network interface
+    :param iface: network interface
     :return:
     """
 
@@ -51,13 +64,13 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     """
     store new network scheme in /etc/network/interfaces
     
-    :param iface: str - network interface
-    :param ssid: str - network name
-    :param passkey: str - authentication passphrase
-    :param lat: float - latitude
-    :param lng: float - longitude
-    :param db: Connection - database handle
-    :return: wifi.Scheme - the scheme just created
+    :param iface: network interface
+    :param ssid: network name
+    :param passkey: authentication passphrase
+    :param lat: latitude
+    :param lng: longitude
+    :param db: handle onto sqlite3 database
+    :return: the scheme just created
     """
 
     try:
@@ -102,13 +115,13 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
     """
     connect to a network
 
-    :param iface: str - network interface
-    :param ssid: str - network name
-    :param passkey: str - authentication passkey
-    :param lat:
-    :param lng:
-    :param db: Connection - database handle
-    :return: int - status code
+    :param iface: network interface
+    :param ssid: network name
+    :param passkey: authentication passkey
+    :param lat: latitude
+    :param lng: longitude
+    :param db: handle onto sqlite3 database
+    :return: status code
     """
 
     def countdown_retry():
@@ -164,8 +177,8 @@ def ssid_find(iface, ssid):
     """
     find a connection scheme for deletion
 
-    :param iface: str - network interface
-    :param ssid: str - network name
+    :param iface: network interface
+    :param ssid: network name
     :return: the scheme that matches the arguments
     """
 
@@ -182,8 +195,8 @@ def ssid_delete(scheme, db=None):
     """
     delete a connection scheme
     
-    :param scheme: Scheme - the scheme to be deleted
-    :param db: Connection - handle onto sqlite3 database
+    :param scheme: the scheme to be deleted
+    :param db: handle onto sqlite3 database
     :return:
     """
 
@@ -208,7 +221,7 @@ def ssid_delete_all(db=None):
     """
     delete all connection schemes
 
-    :param db: Connection - handle onto sqlite3 database
+    :param db: handle onto sqlite3 database
     :return: tuple with the total number of schemes and the number of deleted schemes
     """
 
@@ -231,8 +244,8 @@ def cell_all(iface):
     """
     return all cells available on the given network interface, sorted by signal
 
-    :param iface: str - network interface
-    :return: list - list of cells as json string
+    :param iface: network interface
+    :return: list of cells as json string
     """
 
     try:
@@ -253,7 +266,7 @@ def scheme_all():
     """
     return all schemes stored in /etc/network/interfaces
 
-    :return: list - list of schemes as json string
+    :return: list of schemes as json string
     """
     schemes = Scheme.all()
     res = []
@@ -266,11 +279,11 @@ def scheme_all():
 
 def cell_find(iface, ssid):
     """
-    look up for cell by network interface and ssid
+    look up cell by network interface and ssid
 
-    :param iface: str - network interface
-    :param ssid: str - network name
-    :return: wifi.Cell - the first cell that matches the arguments
+    :param iface: network interface
+    :param ssid: network name
+    :return: the first cell that matches the arguments
     """
 
     cells = Cell.where(iface, lambda c: c.ssid.lower() == ssid.lower())
@@ -284,8 +297,8 @@ def cell_to_dict(cell):
     """
     convert a cell object to dictionary
 
-    :param cell: wifi.Cell - the cell object
-    :return: dict - the cell as dictionary
+    :param cell: the cell object
+    :return: the cell as dictionary
     """
 
     cell_dict = {
@@ -310,8 +323,8 @@ def scheme_to_dict(scheme):
     """
     convert a scheme object to dictionary
 
-    :param scheme: wifi.Scheme - the scheme object
-    :return: dict - the scheme as dictionary
+    :param scheme: the scheme object
+    :return: the scheme as dictionary
     """
 
     scheme_dict = {

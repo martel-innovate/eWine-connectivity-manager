@@ -5,8 +5,8 @@ from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_core import ssid_connect, wifi_enable, wifi_disable, ssid_find, ssid_save, ssid_delete, ssid_delete_all, \
-    cell_all, scheme_all, WifiException
+from wifi_core import ssid_connect, ssid_find, ssid_save, ssid_delete, ssid_delete_all, \
+    cell_all, scheme_all, WifiException, wifi_enable, wifi_disable, wifi_status
 
 app = Flask(__name__)
 
@@ -33,7 +33,7 @@ def get_db():
     """
     get a handle onto sqlite3 database
     
-    :return: Connection - handle onto sqlite3 database
+    :return: handle onto sqlite3 database
     """
 
     db = getattr(g, '_database', None)
@@ -121,13 +121,27 @@ def network_scan(iface):
     return jsonify(message=cells, code=200)
 
 
+@app.route('/status/<iface>')
+@require_api_key
+def network_status(iface):
+    """
+    find whether the given interface is connected to some network
+
+    :param iface: network interface
+    :return: response as JSON
+    """
+
+    ssid = wifi_status(iface)
+    return jsonify(message=ssid, code=200)
+
+
 @app.route('/enable/<iface>', methods=['POST'])
 @require_api_key
 def network_enable(iface):
     """
     enable a network interface
 
-    :param iface: str - network interface
+    :param iface: network interface
     :return:
     """
 
@@ -147,7 +161,7 @@ def network_disable(iface):
     """
     disable a network interface
 
-    :param iface: str - network interface
+    :param iface: network interface
     :return:
     """
 
@@ -255,7 +269,7 @@ def network_delete_all():
     """
     delete all connection schemes from /etc/network/interfaces and sqlite database
 
-    :return:
+    :return: response as JSON
     """
 
     total, deleted = ssid_delete_all(get_db())
