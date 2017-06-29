@@ -8,9 +8,9 @@ import sched
 import time
 import sqlite3
 
-MAX_RETRIES = 3
-RETRY_AFTER = 5  # seconds
 SCHEDULER = sched.scheduler(time.time, time.sleep)
+RETRY_AFTER = 3  # seconds
+TIMEOUT = 60 # seconds
 
 
 class WifiException(Exception):
@@ -153,26 +153,24 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
         raise e
 
     # try to connect (at least once)
-    attempts = 1
-    while True:
+    start = time.time()
+    elapsed = 0
+    while elapsed < TIMEOUT:
         try:
-            print("connection attempt {}/{}".format(attempts, MAX_RETRIES))
             scheme.activate()
-            print("connected to " + ssid)
+            elapsed = time.time() - start
+            print("connected to {} in {} seconds".format(ssid, elapsed))
             break
 
         except ConnectionError as e:
             print("failed")
-
             wifi_enable(iface)
+            countdown_retry()
+            elapsed = time.time() - start
 
-            if attempts < MAX_RETRIES:
-                # try again
-                attempts += 1
-                countdown_retry()
-            else:
-                # failed to connect
-                raise WifiException(e, 500)
+    if elapsed >= TIMEOUT:
+        # failed to connect
+        raise WifiException(e, 500)
 
 
 def ssid_find(iface, ssid):
