@@ -5,8 +5,8 @@ from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_core import ssid_connect, ssid_enable, ssid_disable, ssid_find, ssid_save, ssid_delete, ssid_delete_all, \
-    cell_all, scheme_all, ApiException
+from wifi_core import ssid_connect, wifi_enable, wifi_disable, ssid_find, ssid_save, ssid_delete, ssid_delete_all, \
+    cell_all, scheme_all, WifiException
 
 app = Flask(__name__)
 
@@ -113,12 +113,52 @@ def network_scan(iface):
 
     try:
         cells = cell_all(iface)
-    except ApiException as e:
+    except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
         return resp
 
     return jsonify(message=cells, code=200)
+
+
+@app.route('/enable/<iface>', methods=['POST'])
+@require_api_key
+def network_enable(iface):
+    """
+    enable a network interface
+
+    :param iface: str - network interface
+    :return:
+    """
+
+    try:
+        wifi_enable(iface)
+    except WifiException as e:
+        resp = jsonify(message=e.message, code=e.code)
+        resp.status_code = e.code
+        return resp
+
+    return jsonify(message='enabled {}'.format(iface), code=200)
+
+
+@app.route('/disable/<iface>', methods=['POST'])
+@require_api_key
+def network_disable(iface):
+    """
+    disable a network interface
+
+    :param iface: str - network interface
+    :return:
+    """
+
+    try:
+        wifi_disable(iface)
+    except WifiException as e:
+        resp = jsonify(message=e.message, code=e.code)
+        resp.status_code = e.code
+        return resp
+
+    return jsonify(message='disabled {}'.format(iface), code=200)
 
 
 @app.route('/networks/<iface>:<ssid>', methods=['POST'])
@@ -140,7 +180,7 @@ def network_save(iface, ssid, passkey=None):
 
     try:
         ssid_save(iface, ssid, passkey, lat, lng, get_db())
-    except ApiException as e:
+    except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
         return resp
@@ -175,52 +215,12 @@ def network_connect(iface, ssid, passkey=None):
 
     try:
         ssid_connect(iface, ssid, passkey, lat, lng, get_db())
-    except ApiException as e:
+    except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
         return resp
 
     return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
-
-
-@app.route('/enable/<iface>', methods=['POST'])
-@require_api_key
-def network_enable(iface):
-    """
-    enable a network interface
-
-    :param iface: str - network interface
-    :return:
-    """
-
-    try:
-        ssid_enable(iface)
-    except ApiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
-
-    return jsonify(message='enabled {}'.format(iface), code=200)
-
-
-@app.route('/disable/<iface>', methods=['POST'])
-@require_api_key
-def network_disable(iface):
-    """
-    disable a network interface
-
-    :param iface: str - network interface
-    :return:
-    """
-
-    try:
-        ssid_disable(iface)
-    except ApiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
-
-    return jsonify(message='disabled {}'.format(iface), code=200)
 
 
 @app.route('/networks/<iface>:<ssid>', methods=['DELETE'])
@@ -236,7 +236,7 @@ def network_delete(iface, ssid):
 
     try:
         ssid_delete(ssid_find(iface, ssid), get_db())
-    except ApiException as e:
+    except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
         return resp

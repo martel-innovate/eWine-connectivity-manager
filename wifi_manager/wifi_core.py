@@ -11,53 +11,40 @@ RETRY_AFTER = 5  # seconds
 SCHEDULER = sched.scheduler(time.time, time.sleep)
 
 
-class ApiException(Exception):
+class WifiException(Exception):
     def __init__(self, message, code):
         self.message = message
         self.code = code
 
 
-class ApiSchemeExistsException(ApiException):
+class WifiSchemeExistsException(WifiException):
     def __init__(self, message, code, scheme):
-        super(ApiSchemeExistsException, self).__init__(message, code)
+        super(WifiSchemeExistsException, self).__init__(message, code)
         self.scheme = scheme
 
 
-def scheme_all():
+def wifi_enable(iface):
     """
-    return all schemes stored in /etc/network/interfaces
-
-    :return: list - list of schemes as json string
-    """
-    schemes = Scheme.all()
-    res = []
-
-    for s in schemes:
-        res.append(scheme_to_dict(s))
-
-    return res
-
-
-def cell_all(iface):
-    """
-    return all cells available on the given network interface, sorted by signal
+    enable a network interface
 
     :param iface: str - network interface
-    :return: list - list of cells as json string
+    :return:
     """
 
-    try:
-        cells = Cell.all(iface)
-    except InterfaceError as e:
-        raise ApiException(e, 404)
+    if subprocess.call(["sudo", "ifup", iface]) != 0:
+        raise WifiException("error enabling {}".format(iface), 500)
 
-    cells.sort(key=lambda cell: cell.signal, reverse=True)
 
-    res = []
-    for c in cells:
-        res.append(cell_to_dict(c))
+def wifi_disable(iface):
+    """
+    disconnect a network interface
 
-    return res
+    :param iface: str - network interface
+    :return:
+    """
+
+    if subprocess.call(["sudo", "ifdown", iface]) != 0:
+        raise WifiException("error disabling {}".format(iface), 500)
 
 
 def ssid_save(iface, ssid, passkey, lat, lng, db=None):
@@ -76,7 +63,7 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     try:
         cell = cell_find(iface, ssid)
     except IndexError:
-        raise ApiException("cell {}: not found".format(ssid), 404)
+        raise WifiException("cell {}: not found".format(ssid), 404)
 
     scheme = Scheme.find(iface, ssid)
 
@@ -84,7 +71,7 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     if scheme is None:
         # check if passkey is required
         if cell.encrypted and passkey is None:
-            raise ApiException("ssid {}: passkey required".format(ssid), 400)
+            raise WifiException("ssid {}: passkey required".format(ssid), 400)
 
         scheme = Scheme.for_cell(iface, ssid, cell, passkey)
         scheme.save()
@@ -108,7 +95,7 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
 
         return scheme
 
-    raise ApiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
+    raise WifiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
 
 
 def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
@@ -145,9 +132,9 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
 
     try:
         scheme = ssid_save(iface, ssid, passkey, lat, lng, db)
-    except ApiSchemeExistsException as e:
+    except WifiSchemeExistsException as e:
         scheme = e.scheme
-    except ApiException as e:
+    except WifiException as e:
         raise e
 
     # try to connect (at least once)
@@ -162,7 +149,7 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
         except ConnectionError as e:
             print("failed")
 
-            ssid_enable(iface)
+            wifi_enable(iface)
 
             if attempts < MAX_RETRIES:
                 # try again
@@ -170,31 +157,7 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
                 countdown_retry()
             else:
                 # failed to connect
-                raise ApiException(e, 500)
-
-
-def ssid_enable(iface):
-    """
-    enable a network interface
-
-    :param iface: str - network interface
-    :return:
-    """
-
-    if subprocess.call(["sudo", "ifup", iface]) != 0:
-        raise ApiException("error enabling {}".format(iface), 500)
-
-
-def ssid_disable(iface):
-    """
-    disconnect a network interface
-
-    :param iface: str - network interface
-    :return:
-    """
-
-    if subprocess.call(["sudo", "ifdown", iface]) != 0:
-        raise ApiException("error disabling {}".format(iface), 500)
+                raise WifiException(e, 500)
 
 
 def ssid_find(iface, ssid):
@@ -210,7 +173,7 @@ def ssid_find(iface, ssid):
 
     if scheme is None:
         # scheme doesn't exist, raise exception and exit
-        raise ApiException("scheme {}: not found".format(ssid), 404)
+        raise WifiException("scheme {}: not found".format(ssid), 404)
 
     return scheme
 
@@ -262,6 +225,43 @@ def ssid_delete_all(db=None):
             print("scheme not deleted {}:{}".format(s.interface, s.name))
 
     return total, deleted
+
+
+def cell_all(iface):
+    """
+    return all cells available on the given network interface, sorted by signal
+
+    :param iface: str - network interface
+    :return: list - list of cells as json string
+    """
+
+    try:
+        cells = Cell.all(iface)
+    except InterfaceError as e:
+        raise WifiException(e, 404)
+
+    cells.sort(key=lambda cell: cell.signal, reverse=True)
+
+    res = []
+    for c in cells:
+        res.append(cell_to_dict(c))
+
+    return res
+
+
+def scheme_all():
+    """
+    return all schemes stored in /etc/network/interfaces
+
+    :return: list - list of schemes as json string
+    """
+    schemes = Scheme.all()
+    res = []
+
+    for s in schemes:
+        res.append(scheme_to_dict(s))
+
+    return res
 
 
 def cell_find(iface, ssid):
