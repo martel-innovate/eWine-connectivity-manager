@@ -5,7 +5,8 @@ from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_core import ssid_save, ssid_connect, ssid_disconnect, ssid_find, ssid_delete, ssid_delete_all, cell_all, \
+from wifi_core import ssid_save, ssid_connect, ssid_disable, ssid_find, ssid_delete, ssid_delete_all, \
+    cell_all, \
     scheme_all, \
     ApiException
 
@@ -135,8 +136,12 @@ def network_save(iface, ssid, passkey=None):
     :return: response as JSON
     """
 
+    # hardcode the location --> TODO: fetch from PiAnywhere
+    lat = 45.830697
+    lng = 9.042936
+
     try:
-        ssid_save(iface, ssid, passkey, None, None, get_db())
+        ssid_save(iface, ssid, passkey, lat, lng, get_db())
     except ApiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -166,8 +171,12 @@ def network_connect(iface, ssid, passkey=None):
     :return: response as JSON
     """
 
+    # hardcode the location --> TODO: fetch from PiAnywhere
+    lat = 45.830697
+    lng = 9.042936
+
     try:
-        ssid_connect(iface, ssid, passkey, None, None, get_db())
+        ssid_connect(iface, ssid, passkey, lat, lng, get_db())
     except ApiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -187,7 +196,7 @@ def network_disconnect(iface):
     """
 
     try:
-        ssid_disconnect(iface)
+        ssid_disable(iface)
     except ApiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code

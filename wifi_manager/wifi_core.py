@@ -1,8 +1,6 @@
 from wifi import Cell, Scheme
 from wifi.exceptions import ConnectionError, InterfaceError
 
-import sys
-import argparse
 import subprocess
 import sched
 import time
@@ -48,7 +46,7 @@ def cell_all(iface):
     :return: list - list of cells as json string
     """
 
-    res = []
+    ssid_enable(iface)
 
     try:
         cells = Cell.all(iface)
@@ -57,6 +55,7 @@ def cell_all(iface):
 
     cells.sort(key=lambda cell: cell.signal, reverse=True)
 
+    res = []
     for c in cells:
         res.append(cell_to_dict(c))
 
@@ -70,11 +69,13 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     :param iface: str - network interface
     :param ssid: str - network name
     :param passkey: str - authentication passphrase
-    :param lat:
-    :param lng:
+    :param lat: float - latitude
+    :param lng: float - longitude
     :param db: Connection - database handle
     :return: wifi.Scheme - the scheme just created
     """
+
+    ssid_enable(iface)
 
     try:
         cell = cell_find(iface, ssid)
@@ -165,10 +166,7 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
         except ConnectionError as e:
             print("failed")
 
-            if subprocess.call(["sudo", "ifup", iface]) != 0:
-                # make sure interface is up in case of failure
-                print("ifup error: nonzero exit code")
-                raise ApiException(e, 500)
+            ssid_enable(iface)
 
             if attempts < MAX_RETRIES:
                 # try again
@@ -179,7 +177,19 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
                 raise ApiException(e, 500)
 
 
-def ssid_disconnect(iface):
+def ssid_enable(iface):
+    """
+    enable a network interface
+
+    :param iface: str - network interface
+    :return:
+    """
+
+    if subprocess.call(["sudo", "ifup", iface]) != 0:
+        raise ApiException("error bringing {} up".format(iface), 500)
+
+
+def ssid_disable(iface):
     """
     disconnect a network interface
 
@@ -189,9 +199,6 @@ def ssid_disconnect(iface):
 
     if subprocess.call(["sudo", "ifdown", iface]) != 0:
         raise ApiException("error bringing {} down".format(iface), 500)
-
-    if subprocess.call(["sudo", "ifup", iface]) != 0:
-        raise ApiException("error bringing {} up".format(iface), 500)
 
 
 def ssid_find(iface, ssid):
@@ -318,21 +325,3 @@ def scheme_to_dict(scheme):
     }
 
     return scheme_dict
-
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description='Switch between wireless connections.')
-    parser.add_argument('iface', type=str, help='the network interface controller')
-    parser.add_argument('ssid', type=str, help='the name of the wireless network')
-    parser.add_argument('-p', '--passkey', type=str, help='the passkey for network authentication')
-    parser.add_argument('-d', '--delete', help='delete a network configuration scheme', action="store_true")
-
-    args = parser.parse_args()
-
-    if args.delete:
-        exit_code = ssid_delete(ssid_find(args.iface, args.ssid))
-    else:
-        exit_code = ssid_connect(args.iface, args.ssid, args.passkey, None, None)
-
-    sys.exit(exit_code)
