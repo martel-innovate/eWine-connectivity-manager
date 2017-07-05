@@ -160,7 +160,7 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
             scheme.activate()
             elapsed = time.time() - start
             print("connected to {} in {} seconds".format(ssid, elapsed))
-            break
+            return
 
         except ConnectionError as e:
             print("failed")
@@ -168,9 +168,8 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
             countdown_retry()
             elapsed = time.time() - start
 
-    if elapsed >= TIMEOUT:
-        # failed to connect
-        raise WifiException(e, 500)
+    # failed to connect
+    raise WifiException(e, 500)
 
 
 def ssid_find(iface, ssid):
@@ -185,7 +184,7 @@ def ssid_find(iface, ssid):
     scheme = Scheme.find(iface, ssid)
 
     if scheme is None:
-        # scheme doesn't exist, raise exception and exit
+        # scheme doesn't exist, raise exception
         raise WifiException("scheme {}: not found".format(ssid), 404)
 
     return scheme

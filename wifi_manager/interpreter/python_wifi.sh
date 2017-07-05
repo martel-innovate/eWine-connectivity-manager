@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 cd /home/pi/eWine/wifi_manager
 sudo python wifi_rest.py
