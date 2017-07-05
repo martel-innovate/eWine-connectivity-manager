@@ -125,7 +125,7 @@ def network_scan(iface):
 @require_api_key
 def network_status(iface):
     """
-    find whether the given interface is connected to some network
+    find whether the given interface is connected to a network
 
     :param iface: network interface
     :return: response as JSON
