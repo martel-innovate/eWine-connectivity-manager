@@ -280,7 +280,7 @@ if __name__ == '__main__':
     API_KEY = hexlify(os.urandom(20)).decode()
     print('api key is: {}'.format(API_KEY))
 
-    app.config['DB_PATH'] = '/home/pi/eWine/wifi_manager/schema'
+    app.config['DB_PATH'] = '/home/pi/eWine-connectivity-manager/wifi_manager/schema'
     app.config['DB_SOURCE'] = os.path.join(app.config['DB_PATH'], 'schema.sql')
     app.config['DB_INSTANCE'] = os.path.join(app.config['DB_PATH'], 'schema.db')
 
