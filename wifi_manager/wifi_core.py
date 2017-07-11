@@ -46,8 +46,12 @@ def wifi_enable(iface):
     :return:
     """
 
-    if subprocess.call(["sudo", "ifup", iface]) != 0:
+    code = subprocess.call(["sudo", "ifup", iface])
+
+    if code != 0:
         raise WifiException("error enabling {}".format(iface), 500)
+
+    return code
 
 
 def wifi_disable(iface):
@@ -58,8 +62,12 @@ def wifi_disable(iface):
     :return:
     """
 
-    if subprocess.call(["sudo", "ifdown", iface]) != 0:
+    code = subprocess.call(["sudo", "ifdown", iface])
+
+    if code != 0:
         raise WifiException("error disabling {}".format(iface), 500)
+
+    return code
 
 
 def ssid_save(iface, ssid, passkey, lat, lng, db=None):
@@ -190,14 +198,17 @@ def ssid_find(iface, ssid):
     return scheme
 
 
-def ssid_delete(scheme, db=None):
+def ssid_delete(iface, ssid, db=None):
     """
     delete a connection scheme
     
-    :param scheme: the scheme to be deleted
+    :param iface: network interface
+    :param ssid: network name
     :param db: handle onto sqlite3 database
     :return:
     """
+
+    scheme = ssid_find(iface, ssid)
 
     iface = scheme.interface
     ssid = scheme.name

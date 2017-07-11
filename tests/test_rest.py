@@ -1,5 +1,6 @@
+from wifi_manager import wifi_rest
+
 import os
-import wifi_rest
 import unittest
 import tempfile
 
@@ -11,7 +12,7 @@ class WifiTestCase(unittest.TestCase):
         wifi_rest.app.testing = True
         self.app = wifi_rest.app.test_client()
         with wifi_rest.app.app_context():
-            wifi_rest.init_db()
+            wifi_rest._init_db()
 
     def tearDown(self):
         os.close(self.db_fd)

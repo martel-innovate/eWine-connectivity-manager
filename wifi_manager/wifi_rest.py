@@ -5,7 +5,7 @@ from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_core import ssid_connect, ssid_find, ssid_save, ssid_delete, ssid_delete_all, \
+from wifi_core import ssid_connect, ssid_save, ssid_delete, ssid_delete_all, \
     cell_all, scheme_all, WifiException, wifi_enable, wifi_disable, wifi_status
 
 app = Flask(__name__)
@@ -29,7 +29,7 @@ def require_api_key(route_function):
     return check_api_key
 
 
-def get_db():
+def _get_db():
     """
     get a handle onto sqlite3 database
     
@@ -44,21 +44,21 @@ def get_db():
     return db
 
 
-def init_db():
+def _init_db():
     """
     initialize database from sqlite3 script file
     
     :return: 
     """
     with app.app_context():
-        db = get_db()
+        db = _get_db()
         with app.open_resource(app.config['DB_SOURCE'], mode='r') as f:
             db.cursor().executescript(f.read())
         db.commit()
 
 
 @app.teardown_appcontext
-def close_connection(exception):
+def _close_connection(exception):
     """
     close connection to sqlite3 database
 
@@ -81,7 +81,7 @@ def db_networks():
     :return:
     """
 
-    cursor = get_db().execute("SELECT * FROM networks;")
+    cursor = _get_db().execute("SELECT * FROM networks;")
     rows = cursor.fetchall()
     cursor.close()
 
@@ -175,7 +175,7 @@ def network_disable(iface):
     return jsonify(message='disabled {}'.format(iface), code=200)
 
 
-@app.route('/networks/<iface>:<ssid>', methods=['POST'])
+@app.route('/networks/<iface>:<ssid>x', methods=['POST'])
 @app.route('/networks/<iface>:<ssid>:<passkey>', methods=['POST'])
 @require_api_key
 def network_save(iface, ssid, passkey=None):
@@ -193,7 +193,7 @@ def network_save(iface, ssid, passkey=None):
     lng = 9.042936
 
     try:
-        ssid_save(iface, ssid, passkey, lat, lng, get_db())
+        ssid_save(iface, ssid, passkey, lat, lng, _get_db())
     except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -228,7 +228,7 @@ def network_connect(iface, ssid, passkey=None):
     lng = 9.042936
 
     try:
-        ssid_connect(iface, ssid, passkey, lat, lng, get_db())
+        ssid_connect(iface, ssid, passkey, lat, lng, _get_db())
     except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -249,7 +249,7 @@ def network_delete(iface, ssid):
     """
 
     try:
-        ssid_delete(ssid_find(iface, ssid), get_db())
+        ssid_delete(iface, ssid, _get_db())
     except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -272,7 +272,7 @@ def network_delete_all():
     :return: response as JSON
     """
 
-    total, deleted = ssid_delete_all(get_db())
+    total, deleted = ssid_delete_all(_get_db())
     return jsonify(message='deleted {}/{} schemes'.format(total, deleted), code=200)
 
 
@@ -284,5 +284,5 @@ if __name__ == '__main__':
     app.config['DB_SOURCE'] = os.path.join(app.config['DB_PATH'], 'schema.sql')
     app.config['DB_INSTANCE'] = os.path.join(app.config['DB_PATH'], 'schema.db')
 
-    init_db()
+    _init_db()
     app.run(host='0.0.0.0')
