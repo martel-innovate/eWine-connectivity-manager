@@ -84,7 +84,7 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     """
 
     try:
-        cell = cell_find(iface, ssid)
+        cell = _cell_find(iface, ssid)
     except IndexError:
         raise WifiException("cell {}: not found".format(ssid), 404)
 
@@ -180,7 +180,7 @@ def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
     raise WifiException(e, 500)
 
 
-def ssid_find(iface, ssid):
+def _ssid_find(iface, ssid):
     """
     find a connection scheme for deletion
 
@@ -208,7 +208,7 @@ def ssid_delete(iface, ssid, db=None):
     :return:
     """
 
-    scheme = ssid_find(iface, ssid)
+    scheme = _ssid_find(iface, ssid)
 
     iface = scheme.interface
     ssid = scheme.name
@@ -267,7 +267,7 @@ def cell_all(iface):
 
     res = []
     for c in cells:
-        res.append(cell_to_dict(c))
+        res.append(_cell_to_dict(c))
 
     return res
 
@@ -282,12 +282,12 @@ def scheme_all():
     res = []
 
     for s in schemes:
-        res.append(scheme_to_dict(s))
+        res.append(_scheme_to_dict(s))
 
     return res
 
 
-def cell_find(iface, ssid):
+def _cell_find(iface, ssid):
     """
     look up cell by network interface and ssid
 
@@ -303,7 +303,7 @@ def cell_find(iface, ssid):
     return cell
 
 
-def cell_to_dict(cell):
+def _cell_to_dict(cell):
     """
     convert a cell object to dictionary
 
@@ -329,7 +329,7 @@ def cell_to_dict(cell):
     return cell_dict
 
 
-def scheme_to_dict(scheme):
+def _scheme_to_dict(scheme):
     """
     convert a scheme object to dictionary
 
