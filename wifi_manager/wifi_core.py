@@ -10,7 +10,7 @@ import sqlite3
 
 SCHEDULER = sched.scheduler(time.time, time.sleep)
 RETRY_AFTER = 3  # seconds
-TIMEOUT = 60 # seconds
+TIMEOUT = 60  # seconds
 
 
 class WifiException(Exception):
@@ -73,7 +73,7 @@ def wifi_disable(iface):
 def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     """
     store new network scheme in /etc/network/interfaces
-    
+
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passphrase
@@ -201,7 +201,7 @@ def _ssid_find(iface, ssid):
 def ssid_delete(iface, ssid, db=None):
     """
     delete a connection scheme
-    
+
     :param iface: network interface
     :param ssid: network name
     :param db: handle onto sqlite3 database
@@ -242,7 +242,7 @@ def ssid_delete_all(db=None):
     for s in schemes:
         total += 1
         try:
-            ssid_delete(s, db)
+            ssid_delete(s.interface, s.name, db)
             deleted += 1
         except sqlite3.Error:
             print("scheme not deleted {}:{}".format(s.interface, s.name))

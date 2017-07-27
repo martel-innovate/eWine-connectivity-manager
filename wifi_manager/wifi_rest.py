@@ -1,12 +1,10 @@
 import os
-import sqlite3
 from binascii import hexlify
 from functools import wraps
 
 from flask import Flask, request, g, jsonify
 
-from wifi_core import ssid_connect, ssid_save, ssid_delete, ssid_delete_all, \
-    cell_all, scheme_all, WifiException, wifi_enable, wifi_disable, wifi_status
+from wifi_core import *
 
 app = Flask(__name__)
 
