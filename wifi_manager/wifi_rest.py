@@ -70,22 +70,6 @@ def _close_connection(exception):
         db.close()
 
 
-@app.route('/db/networks')
-@require_api_key
-def db_networks():
-    """
-    dump table networks
-
-    :return:
-    """
-
-    cursor = _get_db().execute("SELECT * FROM networks;")
-    rows = cursor.fetchall()
-    cursor.close()
-
-    return jsonify(message=rows, code=200)
-
-
 @app.route('/networks')
 @require_api_key
 def network_list():
