@@ -157,7 +157,7 @@ def network_disable(iface):
     return jsonify(message='disabled {}'.format(iface), code=200)
 
 
-@app.route('/networks/<iface>:<ssid>x', methods=['POST'])
+@app.route('/networks/<iface>:<ssid>', methods=['POST'])
 @app.route('/networks/<iface>:<ssid>:<passkey>', methods=['POST'])
 @require_api_key
 def network_save(iface, ssid, passkey=None):
@@ -170,12 +170,8 @@ def network_save(iface, ssid, passkey=None):
     :return: response as JSON
     """
 
-    # hardcode the location --> TODO: fetch from PiAnywhere
-    lat = 45.830697
-    lng = 9.042936
-
     try:
-        ssid_save(iface, ssid, passkey, lat, lng, _get_db())
+        ssid_save(iface, ssid, passkey, db=_get_db())
     except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code
@@ -205,12 +201,8 @@ def network_connect(iface, ssid, passkey=None):
     :return: response as JSON
     """
 
-    # hardcode the location --> TODO: fetch from PiAnywhere
-    lat = 45.830697
-    lng = 9.042936
-
     try:
-        ssid_connect(iface, ssid, passkey, lat, lng, _get_db())
+        ssid_connect(iface, ssid, passkey, db=_get_db())
     except WifiException as e:
         resp = jsonify(message=e.message, code=e.code)
         resp.status_code = e.code

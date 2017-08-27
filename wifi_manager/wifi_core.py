@@ -70,7 +70,7 @@ def wifi_disable(iface):
     return code
 
 
-def ssid_save(iface, ssid, passkey, lat, lng, db=None):
+def ssid_save(iface, ssid, passkey, lat=-1, lng=-1, db=None):
     """
     store new network scheme in /etc/network/interfaces
 
@@ -99,6 +99,7 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
         scheme = Scheme.for_cell(iface, ssid, cell, passkey)
         scheme.save()
 
+        # TODO: is db necessary?
         if db is not None:
             # extract hashed passkey from scheme
             if cell.encryption_type.startswith('wpa'):
@@ -121,7 +122,7 @@ def ssid_save(iface, ssid, passkey, lat, lng, db=None):
     raise WifiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
 
 
-def ssid_connect(iface, ssid, passkey, lat, lng, db=None):
+def ssid_connect(iface, ssid, passkey, lat=-1, lng=-1, db=None):
     """
     connect to a network
 
