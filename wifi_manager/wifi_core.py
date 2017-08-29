@@ -70,16 +70,16 @@ def wifi_disable(iface):
     return code
 
 
-def ssid_save(iface, ssid, passkey, lat=-1, lng=-1, db=None):
+def ssid_save(iface, ssid, passkey, db, lat=-1, lng=-1):
     """
     store new network scheme in /etc/network/interfaces
 
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passphrase
+    :param db: handle onto sqlite3 database
     :param lat: latitude
     :param lng: longitude
-    :param db: handle onto sqlite3 database
     :return: the scheme just created
     """
 
@@ -99,39 +99,37 @@ def ssid_save(iface, ssid, passkey, lat=-1, lng=-1, db=None):
         scheme = Scheme.for_cell(iface, ssid, cell, passkey)
         scheme.save()
 
-        # TODO: is db necessary?
-        if db is not None:
-            # extract hashed passkey from scheme
-            if cell.encryption_type.startswith('wpa'):
-                passkey = scheme.options['wpa-psk']
-            elif cell.encryption_type == 'wep':
-                passkey = scheme.options['wireless-key']
+        # extract hashed passkey from scheme
+        if cell.encryption_type.startswith('wpa'):
+            passkey = scheme.options['wpa-psk']
+        elif cell.encryption_type == 'wep':
+            passkey = scheme.options['wireless-key']
 
-            # update database
-            try:
-                query = "INSERT INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
-                db.execute(query, (iface, ssid, passkey, lat, lng))
-                db.commit()
-            except sqlite3.Error as e:
-                # failed to sync with database, revert changes
-                scheme.delete()
-                raise e
+        # update database
+        try:
+            query = "INSERT INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
+            db.execute(query, (iface, ssid, passkey, lat, lng))
+            db.commit()
+        except sqlite3.Error as e:
+            # failed to sync with database, revert changes
+            scheme.delete()
+            raise e
 
         return scheme
 
     raise WifiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
 
 
-def ssid_connect(iface, ssid, passkey, lat=-1, lng=-1, db=None):
+def ssid_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
     """
     connect to a network
 
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passkey
+    :param db: handle onto sqlite3 database
     :param lat: latitude
     :param lng: longitude
-    :param db: handle onto sqlite3 database
     :return: status code
     """
 
@@ -155,7 +153,7 @@ def ssid_connect(iface, ssid, passkey, lat=-1, lng=-1, db=None):
         SCHEDULER.run()
 
     try:
-        scheme = ssid_save(iface, ssid, passkey, lat, lng, db)
+        scheme = ssid_save(iface, ssid, passkey, db, lat, lng)
     except WifiSchemeExistsException as e:
         scheme = e.scheme
     except WifiException as e:
