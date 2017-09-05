@@ -83,7 +83,7 @@ def network_list():
     return jsonify(message=schemes, code=200)
 
 
-@app.route('/networks/<iface>')
+@app.route('/scan/<iface>')
 @require_api_key
 def network_scan(iface):
     """
