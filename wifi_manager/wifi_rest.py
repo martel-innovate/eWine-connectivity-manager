@@ -103,6 +103,20 @@ def network_scan(iface):
     return jsonify(message=cells, code=200)
 
 
+@app.route('/ifaces')
+@app.route('/ifaces:<addresses>')
+@require_api_key
+def iface_list(addresses=''):
+    """
+    list network interfaces
+
+    :return: response as JSON
+    """
+
+    ifaces = wifi_interfaces(bool(addresses))
+    return jsonify(message=ifaces, code=200)
+
+
 @app.route('/status/<iface>')
 @require_api_key
 def network_status(iface):
@@ -113,7 +127,7 @@ def network_status(iface):
     :return: response as JSON
     """
 
-    ssid = wifi_status(iface)
+    ssid = wifi_status(str(iface))
     return jsonify(message=ssid, code=200)
 
 

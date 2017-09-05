@@ -1,8 +1,14 @@
 from __future__ import print_function
+
 from wifi import Cell, Scheme
 from wifi.exceptions import ConnectionError, InterfaceError
 from pythonwifi.iwlibs import Wireless
 
+import array
+import fcntl
+import socket
+import struct
+import sys
 import subprocess
 import sched
 import time
@@ -25,6 +31,51 @@ class WifiSchemeExistsException(WifiException):
         self.scheme = scheme
 
 
+def wifi_interfaces(addresses=False):
+    """
+    list network interfaces
+
+    :param addresses: boolean to include or exclude addresses
+    :return: list of network interfaces
+    """
+
+    is_64bits = sys.maxsize > 2 ** 32
+    struct_size = 40 if is_64bits else 32
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    max_possible = 8  # initial value
+    while True:
+        _bytes = max_possible * struct_size
+        names = array.array('B')
+        for i in range(0, _bytes):
+            names.append(0)
+
+        outbytes = struct.unpack('iL', fcntl.ioctl(
+            s.fileno(),
+            0x8912,  # SIOCGIFCONF
+            struct.pack('iL', _bytes, names.buffer_info()[0])
+        ))[0]
+
+        if outbytes == _bytes:
+            max_possible *= 2
+        else:
+            break
+
+    namestr = names.tostring()
+    ifaces = []
+    for i in range(0, outbytes, struct_size):
+        iface_name = bytes.decode(namestr[i:i + 16]).split('\0', 1)[0]
+        if addresses:
+            iface_addr = socket.inet_ntoa(namestr[i + 20:i + 24])
+            ifaces.append({
+                "name": iface_name,
+                "address": iface_addr
+            })
+        else:
+            ifaces.append(iface_name)
+
+    return ifaces
+
+
 def wifi_status(iface):
     """
     retrieve the network the interface is connected to
@@ -33,7 +84,7 @@ def wifi_status(iface):
     :return: the network ssid or the empty string
     """
 
-    wifi = Wireless(str(iface))
+    wifi = Wireless(iface)
     ssid = wifi.getEssid()
     return ssid
 
