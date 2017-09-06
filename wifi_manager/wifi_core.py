@@ -21,6 +21,7 @@ TIMEOUT = 60  # seconds
 
 class WifiException(Exception):
     def __init__(self, message, code):
+        super(WifiException, self).__init__(message)
         self.message = message
         self.code = code
 
@@ -121,7 +122,7 @@ def wifi_disable(iface):
     return code
 
 
-def ssid_save(iface, ssid, passkey, db, lat=-1, lng=-1):
+def wifi_save(iface, ssid, passkey, db, lat=-1, lng=-1):
     """
     store new network scheme in /etc/network/interfaces
 
@@ -138,6 +139,8 @@ def ssid_save(iface, ssid, passkey, db, lat=-1, lng=-1):
         cell = _cell_find(iface, ssid)
     except IndexError:
         raise WifiException("cell {}: not found".format(ssid), 404)
+    except InterfaceError as e:
+        raise WifiException(e.message, 404)
 
     scheme = Scheme.find(iface, ssid)
 
@@ -171,7 +174,7 @@ def ssid_save(iface, ssid, passkey, db, lat=-1, lng=-1):
     raise WifiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
 
 
-def ssid_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
+def wifi_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
     """
     connect to a network
 
@@ -204,7 +207,7 @@ def ssid_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
         SCHEDULER.run()
 
     try:
-        scheme = ssid_save(iface, ssid, passkey, db, lat, lng)
+        scheme = wifi_save(iface, ssid, passkey, db, lat, lng)
     except WifiSchemeExistsException as e:
         scheme = e.scheme
     except WifiException as e:
@@ -227,10 +230,10 @@ def ssid_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
             elapsed = time.time() - start
 
     # failed to connect
-    raise WifiException(e, 500)
+    raise WifiException(e.message, 500)
 
 
-def _ssid_find(iface, ssid):
+def _wifi_find(iface, ssid):
     """
     find a connection scheme for deletion
 
@@ -248,7 +251,7 @@ def _ssid_find(iface, ssid):
     return scheme
 
 
-def ssid_delete(iface, ssid, db=None):
+def wifi_delete(iface, ssid, db=None):
     """
     delete a connection scheme
 
@@ -258,7 +261,7 @@ def ssid_delete(iface, ssid, db=None):
     :return:
     """
 
-    scheme = _ssid_find(iface, ssid)
+    scheme = _wifi_find(iface, ssid)
 
     iface = scheme.interface
     ssid = scheme.name
@@ -277,7 +280,7 @@ def ssid_delete(iface, ssid, db=None):
             raise e
 
 
-def ssid_delete_all(db=None):
+def wifi_delete_all(db=None):
     """
     delete all connection schemes
 
@@ -292,12 +295,33 @@ def ssid_delete_all(db=None):
     for s in schemes:
         total += 1
         try:
-            ssid_delete(s.interface, s.name, db)
+            wifi_delete(s.interface, s.name, db)
             deleted += 1
-        except sqlite3.Error:
+        except sqlite3.Error as e:
             print("scheme not deleted {}:{}".format(s.interface, s.name))
+            raise e
 
     return total, deleted
+
+
+def wifi_optimal(iface):
+    """
+    return the optimal Wi-Fi network, if any
+
+    :param iface:
+    :return: the network name
+    """
+
+    scanned = cell_all(iface)
+    stored = scheme_all()
+
+    for sc in scanned:
+        for st in stored:
+            st_name = st["name"]
+            if sc["ssid"] == st_name:
+                return st_name
+
+    return ''
 
 
 def cell_all(iface):
@@ -311,7 +335,7 @@ def cell_all(iface):
     try:
         cells = Cell.all(iface)
     except InterfaceError as e:
-        raise WifiException(e, 404)
+        raise WifiException(e.message, 404)
 
     cells.sort(key=lambda cell: cell.signal, reverse=True)
 

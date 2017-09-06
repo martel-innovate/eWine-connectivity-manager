@@ -1,10 +1,9 @@
-import os
 from binascii import hexlify
 from functools import wraps
-
 from flask import Flask, request, g, jsonify
-
 from wifi_core import *
+
+import os
 
 app = Flask(__name__)
 
@@ -70,17 +69,32 @@ def _close_connection(exception):
         db.close()
 
 
+@app.errorhandler(WifiException)
+def handle_wifi_exception(e):
+    resp = jsonify(message=e.message, code=e.code)
+    resp.status_code = e.code
+    return resp
+
+
+@app.errorhandler(sqlite3.Error)
+def handle_sqlite_exception(e):
+    resp = jsonify(message=e.message, code=500)
+    resp.status_code = resp.code
+    return resp
+
+
 @app.route('/networks')
 @require_api_key
 def network_list():
     """
     return all schemes stored in /etc/network/interfaces
     
-    :return: response as JSON 
+    :return: response as JSON
     """
 
-    schemes = scheme_all()
-    return jsonify(message=schemes, code=200)
+    stored = scheme_all()
+
+    return jsonify(message=stored, code=200)
 
 
 @app.route('/scan/<iface>')
@@ -93,18 +107,13 @@ def network_scan(iface):
     :return: response as JSON
     """
 
-    try:
-        cells = cell_all(iface)
-    except WifiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
+    cells = cell_all(iface)
 
     return jsonify(message=cells, code=200)
 
 
 @app.route('/ifaces')
-@app.route('/ifaces:<addresses>')
+@app.route('/ifaces/<addresses>')
 @require_api_key
 def iface_list(addresses=''):
     """
@@ -114,6 +123,7 @@ def iface_list(addresses=''):
     """
 
     ifaces = wifi_interfaces(bool(addresses))
+
     return jsonify(message=ifaces, code=200)
 
 
@@ -128,6 +138,7 @@ def network_status(iface):
     """
 
     ssid = wifi_status(str(iface))
+
     return jsonify(message=ssid, code=200)
 
 
@@ -138,15 +149,10 @@ def network_enable(iface):
     enable a network interface
 
     :param iface: network interface
-    :return:
+    :return: response as JSON
     """
 
-    try:
-        wifi_enable(iface)
-    except WifiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
+    wifi_enable(iface)
 
     return jsonify(message='enabled {}'.format(iface), code=200)
 
@@ -158,17 +164,26 @@ def network_disable(iface):
     disable a network interface
 
     :param iface: network interface
-    :return:
+    :return: response as JSON
     """
 
-    try:
-        wifi_disable(iface)
-    except WifiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
+    wifi_disable(iface)
 
     return jsonify(message='disabled {}'.format(iface), code=200)
+
+
+@app.route('/optimal/<iface>')
+@require_api_key
+def network_optimal(iface):
+    """
+    return the optimal Wi-Fi network, if any
+
+    :return: response as JSON
+    """
+
+    optimal = wifi_optimal(iface)
+
+    return jsonify(message=optimal, code=200)
 
 
 @app.route('/networks/<iface>:<ssid>', methods=['POST'])
@@ -184,17 +199,7 @@ def network_save(iface, ssid, passkey=None):
     :return: response as JSON
     """
 
-    try:
-        ssid_save(iface, ssid, passkey, db=_get_db())
-    except WifiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
-    except sqlite3.Error as e:
-        code = 500
-        resp = jsonify(message=e, code=code)
-        resp.status_code = code
-        return resp
+    wifi_save(iface, ssid, passkey, db=_get_db())
 
     code = 201
     resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
@@ -215,12 +220,7 @@ def network_connect(iface, ssid, passkey=None):
     :return: response as JSON
     """
 
-    try:
-        ssid_connect(iface, ssid, passkey, db=_get_db())
-    except WifiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
+    wifi_connect(iface, ssid, passkey, db=_get_db())
 
     return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
 
@@ -236,17 +236,7 @@ def network_delete(iface, ssid):
     :return: response as JSON
     """
 
-    try:
-        ssid_delete(iface, ssid, _get_db())
-    except WifiException as e:
-        resp = jsonify(message=e.message, code=e.code)
-        resp.status_code = e.code
-        return resp
-    except sqlite3.Error as e:
-        code = 500
-        resp = jsonify(message=e, code=code)
-        resp.status_code = code
-        return resp
+    wifi_delete(iface, ssid, _get_db())
 
     return jsonify(message='deleted {}:{}'.format(iface, ssid), code=200)
 
@@ -260,7 +250,8 @@ def network_delete_all():
     :return: response as JSON
     """
 
-    total, deleted = ssid_delete_all(_get_db())
+    total, deleted = wifi_delete_all(_get_db())
+
     return jsonify(message='deleted {}/{} schemes'.format(total, deleted), code=200)
 
 
@@ -271,6 +262,9 @@ if __name__ == '__main__':
     app.config['DB_PATH'] = '/home/pi/eWine-connectivity-manager/wifi_manager/schema'
     app.config['DB_SOURCE'] = os.path.join(app.config['DB_PATH'], 'schema.sql')
     app.config['DB_INSTANCE'] = os.path.join(app.config['DB_PATH'], 'schema.db')
+
+    app.config['DEBUG'] = True
+    app.config['TESTING'] = True
 
     _init_db()
     app.run(host='0.0.0.0')
