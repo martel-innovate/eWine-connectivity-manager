@@ -97,21 +97,6 @@ def network_list():
     return jsonify(message=stored, code=200)
 
 
-@app.route('/scan/<iface>')
-@require_api_key
-def network_scan(iface):
-    """
-    return all wifi networks available on a network interface
-
-    :param iface: network interface
-    :return: response as JSON
-    """
-
-    cells = cell_all(iface)
-
-    return jsonify(message=cells, code=200)
-
-
 @app.route('/ifaces')
 @app.route('/ifaces/<addresses>')
 @require_api_key
@@ -125,6 +110,21 @@ def iface_list(addresses=''):
     ifaces = wifi_interfaces(bool(addresses))
 
     return jsonify(message=ifaces, code=200)
+
+
+@app.route('/scan/<iface>')
+@require_api_key
+def network_scan(iface):
+    """
+    return all wifi networks available on a network interface
+
+    :param iface: network interface
+    :return: response as JSON
+    """
+
+    cells = cell_all(iface)
+
+    return jsonify(message=cells, code=200)
 
 
 @app.route('/status/<iface>')
@@ -172,20 +172,6 @@ def network_disable(iface):
     return jsonify(message='disabled {}'.format(iface), code=200)
 
 
-@app.route('/optimal/<iface>')
-@require_api_key
-def network_optimal(iface):
-    """
-    return the optimal Wi-Fi network, if any
-
-    :return: response as JSON
-    """
-
-    optimal = wifi_optimal(iface)
-
-    return jsonify(message=optimal, code=200)
-
-
 @app.route('/networks/<iface>:<ssid>', methods=['POST'])
 @app.route('/networks/<iface>:<ssid>:<passkey>', methods=['POST'])
 @require_api_key
@@ -205,6 +191,20 @@ def network_save(iface, ssid, passkey=None):
     resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
     resp.status_code = code
     return resp
+
+
+@app.route('/optimal/<iface>')
+@require_api_key
+def network_optimal(iface):
+    """
+    return the optimal Wi-Fi network, if any
+
+    :return: response as JSON
+    """
+
+    optimal = wifi_optimal(iface)
+
+    return jsonify(message=optimal, code=200)
 
 
 @app.route('/connect/<iface>:<ssid>', methods=['POST'])
