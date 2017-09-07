@@ -64,7 +64,7 @@ def wifi_interfaces(addresses=False):
     namestr = names.tostring()
     ifaces = []
     for i in range(0, outbytes, struct_size):
-        iface_name = bytes.decode(namestr[i:i + 16]).split('\0', 1)[0]
+        iface_name = str(bytes.decode(namestr[i:i + 16]).split('\0', 1)[0])
         if addresses:
             iface_addr = socket.inet_ntoa(namestr[i + 20:i + 24])
             ifaces.append({
