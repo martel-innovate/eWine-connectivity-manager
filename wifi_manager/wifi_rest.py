@@ -264,7 +264,6 @@ if __name__ == '__main__':
     app.config['DB_INSTANCE'] = os.path.join(app.config['DB_PATH'], 'schema.db')
 
     app.config['DEBUG'] = True
-    app.config['TESTING'] = True
 
     _init_db()
     app.run(host='0.0.0.0')
