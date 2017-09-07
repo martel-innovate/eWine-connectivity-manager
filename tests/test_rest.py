@@ -8,7 +8,7 @@ import tempfile
 class WifiRestTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.db_fd, rest.app.config['DATABASE'] = tempfile.mkstemp()
+        self.db_fd, rest.app.config['DB_INSTANCE'] = tempfile.mkstemp()
         rest.app.testing = True
         self.app = rest.app.test_client()
         with rest.app.app_context():
@@ -16,7 +16,7 @@ class WifiRestTestCase(unittest.TestCase):
 
     def tearDown(self):
         os.close(self.db_fd)
-        os.unlink(rest.app.config['DATABASE'])
+        os.unlink(rest.app.config['DB_INSTANCE'])
 
 
 if __name__ == '__main__':
