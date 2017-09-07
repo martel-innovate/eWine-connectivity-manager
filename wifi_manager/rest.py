@@ -16,7 +16,7 @@ def require_api_key(route_function):
 
     @wraps(route_function)
     def check_api_key(*args, **kwargs):
-        if request.headers.get('X-api-key') and request.headers.get('X-api-key') == app.API_KEY:
+        if request.headers.get('X-Api-Key') and request.headers.get('X-Api-Key') == app.API_KEY:
             return route_function(*args, **kwargs)
         else:
             return jsonify(message='unauthorized: wrong or missing api key', code=401)
