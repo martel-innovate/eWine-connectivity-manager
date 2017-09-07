@@ -32,7 +32,7 @@ class WifiSchemeExistsException(WifiException):
         self.scheme = scheme
 
 
-def wifi_interfaces(addresses=False):
+def interfaces(addresses=False):
     """
     list network interfaces
 
@@ -77,7 +77,7 @@ def wifi_interfaces(addresses=False):
     return ifaces
 
 
-def wifi_status(iface):
+def status(iface):
     """
     retrieve the network the interface is connected to
 
@@ -90,7 +90,7 @@ def wifi_status(iface):
     return ssid
 
 
-def wifi_enable(iface):
+def enable(iface):
     """
     enable a network interface
 
@@ -106,7 +106,7 @@ def wifi_enable(iface):
     return code
 
 
-def wifi_disable(iface):
+def disable(iface):
     """
     disconnect a network interface
 
@@ -122,7 +122,7 @@ def wifi_disable(iface):
     return code
 
 
-def wifi_save(iface, ssid, passkey, db, lat=-1, lng=-1):
+def save(iface, ssid, passkey, db, lat=-1, lng=-1):
     """
     store new network scheme in /etc/network/interfaces
 
@@ -174,7 +174,7 @@ def wifi_save(iface, ssid, passkey, db, lat=-1, lng=-1):
     raise WifiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
 
 
-def wifi_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
+def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
     """
     connect to a network
 
@@ -207,7 +207,7 @@ def wifi_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
         SCHEDULER.run()
 
     try:
-        scheme = wifi_save(iface, ssid, passkey, db, lat, lng)
+        scheme = save(iface, ssid, passkey, db, lat, lng)
     except WifiSchemeExistsException as e:
         scheme = e.scheme
     except WifiException as e:
@@ -225,7 +225,7 @@ def wifi_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
 
         except ConnectionError as e:
             print("failed")
-            wifi_enable(iface)
+            enable(iface)
             countdown_retry()
             elapsed = time.time() - start
 
@@ -233,7 +233,7 @@ def wifi_connect(iface, ssid, passkey, db, lat=-1, lng=-1):
     raise WifiException(e.message, 500)
 
 
-def _wifi_find(iface, ssid):
+def _find(iface, ssid):
     """
     find a connection scheme for deletion
 
@@ -251,7 +251,7 @@ def _wifi_find(iface, ssid):
     return scheme
 
 
-def wifi_delete(iface, ssid, db=None):
+def delete(iface, ssid, db=None):
     """
     delete a connection scheme
 
@@ -261,7 +261,7 @@ def wifi_delete(iface, ssid, db=None):
     :return:
     """
 
-    scheme = _wifi_find(iface, ssid)
+    scheme = _find(iface, ssid)
 
     iface = scheme.interface
     ssid = scheme.name
@@ -280,7 +280,7 @@ def wifi_delete(iface, ssid, db=None):
             raise e
 
 
-def wifi_delete_all(db=None):
+def delete_all(db=None):
     """
     delete all connection schemes
 
@@ -295,7 +295,7 @@ def wifi_delete_all(db=None):
     for s in schemes:
         total += 1
         try:
-            wifi_delete(s.interface, s.name, db)
+            delete(s.interface, s.name, db)
             deleted += 1
         except sqlite3.Error as e:
             print("scheme not deleted {}:{}".format(s.interface, s.name))
@@ -304,7 +304,7 @@ def wifi_delete_all(db=None):
     return total, deleted
 
 
-def wifi_optimal(iface):
+def optimal(iface):
     """
     return the optimal Wi-Fi network, if any
 
