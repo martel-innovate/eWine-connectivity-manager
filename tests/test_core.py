@@ -20,26 +20,26 @@ class WifiCoreTestCase(unittest.TestCase):
             rest.init_db()
 
     def test_1_enable(self):
-        code = core.wifi_enable(self.iface)
+        code = core.enable(self.iface)
         self.assertEqual(code, 0)
 
-        ifaces = core.wifi_interfaces()
+        ifaces = core.interfaces()
         self.assertNotIn(self.iface, ifaces)
 
     def test_2_connect(self):
-        optimal = core.wifi_optimal(self.iface)
+        optimal = core.optimal(self.iface)
         self.assertTrue(len(optimal) > 0)
 
-        core.wifi_connect(self.iface, optimal, None, self.db_fd)
+        core.connect(self.iface, optimal, None, self.db_fd)
 
-        ifaces = core.wifi_interfaces()
+        ifaces = core.interfaces()
         self.assertIn(self.iface, ifaces)
 
     def test_3_disable(self):
-        code = core.wifi_disable(self.iface)
+        code = core.disable(self.iface)
         self.assertEqual(code, 0)
 
-        ifaces = core.wifi_interfaces()
+        ifaces = core.interfaces()
         self.assertNotIn(self.iface, ifaces)
 
     def tearDown(self):

@@ -3,6 +3,7 @@ from flask import Flask, request, g, jsonify
 from core import *
 
 app = Flask(__name__)
+app.API_KEY = ''
 
 
 def require_api_key(route_function):
@@ -104,7 +105,7 @@ def iface_list(addresses=''):
     :return: response as JSON
     """
 
-    ifaces = wifi_interfaces(bool(addresses))
+    ifaces = interfaces(bool(addresses))
 
     return jsonify(message=ifaces, code=200)
 
@@ -134,7 +135,7 @@ def network_status(iface):
     :return: response as JSON
     """
 
-    ssid = wifi_status(str(iface))
+    ssid = status(str(iface))
 
     return jsonify(message=ssid, code=200)
 
@@ -149,7 +150,7 @@ def network_enable(iface):
     :return: response as JSON
     """
 
-    wifi_enable(iface)
+    enable(iface)
 
     return jsonify(message='enabled {}'.format(iface), code=200)
 
@@ -164,7 +165,7 @@ def network_disable(iface):
     :return: response as JSON
     """
 
-    wifi_disable(iface)
+    disable(iface)
 
     return jsonify(message='disabled {}'.format(iface), code=200)
 
@@ -182,7 +183,7 @@ def network_save(iface, ssid, passkey=None):
     :return: response as JSON
     """
 
-    wifi_save(iface, ssid, passkey, db=_get_db())
+    save(iface, ssid, passkey, db=_get_db())
 
     code = 201
     resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
@@ -199,9 +200,9 @@ def network_optimal(iface):
     :return: response as JSON
     """
 
-    optimal = wifi_optimal(iface)
+    opt = optimal(iface)
 
-    return jsonify(message=optimal, code=200)
+    return jsonify(message=opt, code=200)
 
 
 @app.route('/connect/<iface>:<ssid>', methods=['POST'])
@@ -217,7 +218,7 @@ def network_connect(iface, ssid, passkey=None):
     :return: response as JSON
     """
 
-    wifi_connect(iface, ssid, passkey, db=_get_db())
+    connect(iface, ssid, passkey, db=_get_db())
 
     return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
 
@@ -233,7 +234,7 @@ def network_delete(iface, ssid):
     :return: response as JSON
     """
 
-    wifi_delete(iface, ssid, _get_db())
+    delete(iface, ssid, _get_db())
 
     return jsonify(message='deleted {}:{}'.format(iface, ssid), code=200)
 
@@ -247,6 +248,6 @@ def network_delete_all():
     :return: response as JSON
     """
 
-    total, deleted = wifi_delete_all(_get_db())
+    total, deleted = delete_all(_get_db())
 
     return jsonify(message='deleted {}/{} schemes'.format(total, deleted), code=200)
