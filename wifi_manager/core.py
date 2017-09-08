@@ -251,7 +251,7 @@ def _find(iface, ssid):
     return scheme
 
 
-def delete(iface, ssid, db=None):
+def delete(iface, ssid, db):
     """
     delete a connection scheme
 
@@ -269,18 +269,17 @@ def delete(iface, ssid, db=None):
     scheme.delete()
     print("deleted scheme {}:{}".format(iface, ssid))
 
-    if db is not None:
-        # update database
-        try:
-            db.execute("DELETE FROM networks WHERE iface=? AND ssid=?;", (iface, ssid))
-            db.commit()
-        except sqlite3.Error as e:
-            # failed to sync with database, revert changes
-            scheme.save()
-            raise e
+    # update database
+    try:
+        db.execute("DELETE FROM networks WHERE iface=? AND ssid=?;", (iface, ssid))
+        db.commit()
+    except sqlite3.Error as e:
+        # failed to sync with database, revert changes
+        scheme.save()
+        raise e
 
 
-def delete_all(db=None):
+def delete_all(db):
     """
     delete all connection schemes
 
