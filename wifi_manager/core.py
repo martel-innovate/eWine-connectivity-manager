@@ -161,7 +161,7 @@ def save(iface, ssid, passkey, db, lat=-1, lng=-1):
 
         # update database
         try:
-            query = "INSERT INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
+            query = "INSERT or REPLACE INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
             db.execute(query, (iface, ssid, passkey, lat, lng))
             db.commit()
         except sqlite3.Error as e:
