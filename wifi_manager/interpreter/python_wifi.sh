@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cd /home/pi/eWine-connectivity-manager
+cd $(dirname $0)/../..
 sudo python wifi_manager
