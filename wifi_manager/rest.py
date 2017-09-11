@@ -76,8 +76,9 @@ def handle_wifi_exception(e):
 
 @app.errorhandler(sqlite3.Error)
 def handle_sqlite_exception(e):
-    resp = jsonify(message=e.message, code=500)
-    resp.status_code = resp.code
+    status_code = 500
+    resp = jsonify(message=e.message, code=status_code)
+    resp.status_code = status_code
     return resp
 
 
