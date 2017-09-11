@@ -26,12 +26,6 @@ class WifiException(Exception):
         self.code = code
 
 
-class WifiSchemeExistsException(WifiException):
-    def __init__(self, message, code, scheme):
-        super(WifiSchemeExistsException, self).__init__(message, code)
-        self.scheme = scheme
-
-
 def interfaces(addresses=False):
     """
     list network interfaces
@@ -95,7 +89,7 @@ def enable(iface):
     enable a network interface
 
     :param iface: network interface
-    :return:
+    :return: exit code
     """
 
     code = subprocess.call(["sudo", "ifup", iface])
@@ -111,7 +105,7 @@ def disable(iface):
     disconnect a network interface
 
     :param iface: network interface
-    :return:
+    :return: exit code
     """
 
     code = subprocess.call(["sudo", "ifdown", iface])
@@ -124,7 +118,6 @@ def disable(iface):
 
 def save(iface, ssid, passkey, db, lat=-1, lng=-1):
     """
-    store new network scheme in /etc/network/interfaces
 
     :param iface: network interface
     :param ssid: network name
@@ -135,43 +128,16 @@ def save(iface, ssid, passkey, db, lat=-1, lng=-1):
     :return: the scheme just created
     """
 
-    try:
-        cell = _cell_find(iface, ssid)
-    except IndexError:
-        raise WifiException("cell {}: not found".format(ssid), 404)
-    except InterfaceError as e:
-        raise WifiException(e.message, 404)
-
+    cell = _network_in_range(iface, ssid)
     scheme = Scheme.find(iface, ssid)
 
-    # save scheme if it doesn't exist
-    if scheme is None:
-        # check if passkey is required
-        if cell.encrypted and passkey is None:
-            raise WifiException("ssid {}: passkey required".format(ssid), 400)
+    # save scheme to file only if it does not exists
+    if not scheme:
+        scheme = _save_to_file(iface, ssid, cell, passkey)
 
-        scheme = Scheme.for_cell(iface, ssid, cell, passkey)
-        scheme.save()
+    _save_to_db(iface, ssid, _get_hashed_passkey(scheme, cell), db, lat, lng)
 
-        # extract hashed passkey from scheme
-        if cell.encryption_type.startswith('wpa'):
-            passkey = scheme.options['wpa-psk']
-        elif cell.encryption_type == 'wep':
-            passkey = scheme.options['wireless-key']
-
-        # update database
-        try:
-            query = "INSERT or REPLACE INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
-            db.execute(query, (iface, ssid, passkey, lat, lng))
-            db.commit()
-        except sqlite3.Error as e:
-            # failed to sync with database, revert changes
-            scheme.delete()
-            raise e
-
-        return scheme
-
-    raise WifiSchemeExistsException("ssid {}: scheme already exists".format(ssid), 409, scheme)
+    return scheme
 
 
 def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
@@ -208,8 +174,6 @@ def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
 
     try:
         scheme = save(iface, ssid, passkey, db, lat, lng)
-    except WifiSchemeExistsException as e:
-        scheme = e.scheme
     except WifiException as e:
         raise e
 
@@ -233,24 +197,6 @@ def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
     raise WifiException(e.message, 500)
 
 
-def _find(iface, ssid):
-    """
-    find a connection scheme for deletion
-
-    :param iface: network interface
-    :param ssid: network name
-    :return: the scheme that matches the arguments
-    """
-
-    scheme = Scheme.find(iface, ssid)
-
-    if scheme is None:
-        # scheme doesn't exist, raise exception
-        raise WifiException("scheme {}: not found".format(ssid), 404)
-
-    return scheme
-
-
 def delete(iface, ssid, db):
     """
     delete a connection scheme
@@ -261,7 +207,7 @@ def delete(iface, ssid, db):
     :return:
     """
 
-    scheme = _find(iface, ssid)
+    scheme = _scheme_find(iface, ssid)
 
     iface = scheme.interface
     ssid = scheme.name
@@ -360,6 +306,24 @@ def scheme_all():
     return res
 
 
+def _scheme_find(iface, ssid):
+    """
+    find a connection scheme for deletion
+
+    :param iface: network interface
+    :param ssid: network name
+    :return: the scheme that matches the arguments
+    """
+
+    scheme = Scheme.find(iface, ssid)
+
+    if scheme is None:
+        # scheme doesn't exist, raise exception
+        raise WifiException("scheme {}: not found".format(ssid), 404)
+
+    return scheme
+
+
 def _cell_find(iface, ssid):
     """
     look up cell by network interface and ssid
@@ -417,3 +381,80 @@ def _scheme_to_dict(scheme):
     }
 
     return scheme_dict
+
+
+def _network_in_range(iface, ssid):
+    """
+    find where the given network is in range
+
+    :param iface: network interface
+    :param ssid: network name
+    :return: cell object matching the arguments
+    """
+
+    try:
+        cell = _cell_find(iface, ssid)
+    except IndexError:
+        raise WifiException("cell {}: not found".format(ssid), 404)
+    except InterfaceError as e:
+        raise WifiException(e.message, 404)
+
+    return cell
+
+
+def _save_to_file(iface, ssid, cell, passkey):
+    """
+    store new network scheme in /etc/network/interfaces
+
+    :param iface: network interface
+    :param ssid: network name
+    :param cell: cell object matching the arguments
+    :param passkey: authentication passphrase
+    :return:
+    """
+
+    # check if passkey is required
+    if cell.encrypted and passkey is None:
+        raise WifiException("ssid {}: passkey required".format(ssid), 400)
+
+    scheme = Scheme.for_cell(iface, ssid, cell, passkey)
+    scheme.save()
+    return scheme
+
+
+def _get_hashed_passkey(scheme, cell):
+    """
+    extract hashed passkey from scheme
+
+    :param scheme: scheme object containing the hashed passkey
+    :param cell: cell object containing the encryption type
+    :return: the hashed passkey
+    """
+
+    if cell.encryption_type.startswith('wpa'):
+        passkey = scheme.options['wpa-psk']
+    elif cell.encryption_type == 'wep':
+        passkey = scheme.options['wireless-key']
+
+    return passkey
+
+
+def _save_to_db(iface, ssid, passkey, db, lat, lng):
+    """
+    store new network scheme in sqlite3 database, or update an existing one
+
+    :param iface: network interface
+    :param ssid: network name
+    :param passkey: authentication passphrase
+    :param db: handle onto sqlite3 database
+    :param lat: latitude
+    :param lng: longitude
+    :return:
+    """
+
+    try:
+        query = "INSERT or REPLACE INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
+        db.execute(query, (iface, ssid, passkey, lat, lng))
+        db.commit()
+    except sqlite3.Error as e:
+        raise e
