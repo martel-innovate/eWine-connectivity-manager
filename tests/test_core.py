@@ -1,5 +1,4 @@
 from context import os, core, rest
-
 import unittest
 import tempfile
 

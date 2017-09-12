@@ -1,6 +1,5 @@
 from binascii import hexlify
 from rest import app, init_db
-
 import os
 
 app.API_KEY = hexlify(os.urandom(20)).decode()

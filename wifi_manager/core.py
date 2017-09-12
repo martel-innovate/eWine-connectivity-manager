@@ -1,9 +1,7 @@
 from __future__ import print_function
-
 from wifi import Cell, Scheme
 from wifi.exceptions import ConnectionError, InterfaceError
 from pythonwifi.iwlibs import Wireless
-
 import array
 import fcntl
 import socket

@@ -1,8 +1,6 @@
 from binascii import hexlify
-
 from flask import json
 from context import rest
-
 import os
 import unittest
 import tempfile
@@ -13,7 +11,7 @@ class WifiRestTestCase(unittest.TestCase):
         Before running the tests, perform the following setup operations:
         - enable 'wlan0'
         - connect to a network
-        """
+    """
 
     def setUp(self):
         dir_name = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
