@@ -172,10 +172,7 @@ def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
         SCHEDULER.enter(sec, 1, do_nothing, ())
         SCHEDULER.run()
 
-    try:
-        scheme = save(iface, ssid, passkey, db, lat, lng)
-    except WifiException as e:
-        raise e
+    scheme = save(iface, ssid, passkey, db, lat, lng)
 
     # try to connect (at least once)
     start = time.time()
@@ -452,9 +449,6 @@ def _save_to_db(iface, ssid, passkey, db, lat, lng):
     :return:
     """
 
-    try:
-        query = "INSERT or REPLACE INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
-        db.execute(query, (iface, ssid, passkey, lat, lng))
-        db.commit()
-    except sqlite3.Error as e:
-        raise e
+    query = "INSERT or REPLACE INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
+    db.execute(query, (iface, ssid, passkey, lat, lng))
+    db.commit()
