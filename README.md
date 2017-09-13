@@ -3,6 +3,12 @@
 
 The app exposes a REST API to control wifi connectivity. Using the right network interface, it is possible to connect and disconnect from wifi networks, but also store and manage network configurations in /etc/network/interfaces and in a Sqlite3 database.
 
+The app runs with [Python 2.7.9][1], but ideally should work with [all Python 2.7 releases][2].
+
+Make sure [pip][3] is installed on your system, then set up the environment:
+
+    pip install -r requirements.txt
+
 Launch the app by running the bash script: `wifi_manager/interpreter/python_wifi.sh`.
 
 The app listens by default on port 5000. Every request to the REST API must include the following header:
@@ -27,6 +33,10 @@ Here is a list of all API requests, the parameters they accept, and their purpos
 | POST /connect/`<iface>`:`<ssid>`:`<passkey>` | `iface`: same as above; `ssid`: same as above; `passkey`: same as above | connect to a secured wifi network |
 | DELETE /networks/`<iface>`:`<ssid>` | `iface`: same as above; `ssid`: same as above | delete a network configuration from /etc/network/interfaces and sqlite database |
 | DELETE /networks |  | delete all network configurations from /etc/network/interfaces and sqlite database |
+
+[1]:https://www.python.org/downloads/release/python-279/
+[2]:https://www.python.org/downloads/
+[3]:https://pip.pypa.io/en/stable/installing/
 
 
 
