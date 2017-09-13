@@ -10,10 +10,8 @@ import tempfile
 
 class WifiRestTestCase(unittest.TestCase):
     """
-        Before running the tests, perform the following setup operations:
-        - enable 'wlan0'
-        - connect to a network
-        """
+        Before running the tests, make sure at least one network configuration exists and is in range
+    """
 
     def setUp(self):
         dir_name = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -115,7 +113,7 @@ class WifiRestTestCase(unittest.TestCase):
 
     def test_2a_delete_all(self):
         n = self.stored_networks()
-        resp = self.app.delete('/networks', headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.delete('/networks/test', headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertEquals(resp_dict['message'], self.netalldeleted.format(n, n))

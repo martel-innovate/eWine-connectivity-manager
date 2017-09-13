@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import Flask, request, g, jsonify
 from core import *
+import sqlite3
 
 app = Flask(__name__)
 app.API_KEY = ''
@@ -48,7 +49,7 @@ def init_db():
     with app.app_context():
         db = get_db()
         with app.open_resource(app.config['DB_SOURCE'], mode='r') as f:
-            db.cursor().executescript(f.read())
+            db.executescript(f.read())
         db.commit()
 
 
@@ -225,30 +226,34 @@ def network_connect(iface, ssid, passkey=None):
 
 
 @app.route('/networks/<iface>:<ssid>', methods=['DELETE'])
+@app.route('/networks/<iface>:<ssid>:<test>', methods=['DELETE'])
 @require_api_key
-def network_delete(iface, ssid):
+def network_delete(iface, ssid, test=''):
     """
     delete a connection scheme from /etc/network/interfaces and sqlite database
 
     :param iface: network interface
-    :param ssid: network name 
+    :param ssid: network name
+    :param test: for tests only
     :return: response as JSON
     """
 
-    delete(iface, ssid, get_db())
+    delete(iface, ssid, get_db(), db_only=bool(test))
 
     return jsonify(message='deleted {}:{}'.format(iface, ssid), code=200)
 
 
 @app.route('/networks', methods=['DELETE'])
+@app.route('/networks/<test>', methods=['DELETE'])
 @require_api_key
-def network_delete_all():
+def network_delete_all(test=''):
     """
     delete all connection schemes from /etc/network/interfaces and sqlite database
 
+    :param test: for tests only
     :return: response as JSON
     """
 
-    total, deleted = delete_all(get_db())
+    total, deleted = delete_all(get_db(), db_only=bool(test))
 
     return jsonify(message='deleted {}/{} schemes'.format(total, deleted), code=200)
