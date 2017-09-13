@@ -12,7 +12,6 @@ import sys
 import subprocess
 import sched
 import time
-import sqlite3
 
 SCHEDULER = sched.scheduler(time.time, time.sleep)
 RETRY_AFTER = 3  # seconds
@@ -194,13 +193,14 @@ def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
     raise WifiException(e.message, 500)
 
 
-def delete(iface, ssid, db):
+def delete(iface, ssid, db, db_only=False):
     """
     delete a connection scheme
 
     :param iface: network interface
     :param ssid: network name
     :param db: handle onto sqlite3 database
+    :param db_only: boolean flag to decide whether a deletion concerns only the database
     :return:
     """
 
@@ -209,24 +209,20 @@ def delete(iface, ssid, db):
     iface = scheme.interface
     ssid = scheme.name
 
-    scheme.delete()
-    print("deleted scheme {}:{}".format(iface, ssid))
+    if not db_only:
+        scheme.delete()
 
     # update database
-    try:
-        db.execute("DELETE FROM networks WHERE iface=? AND ssid=?;", (iface, ssid))
-        db.commit()
-    except sqlite3.Error as e:
-        # failed to sync with database, revert changes
-        scheme.save()
-        raise e
+    db.execute("DELETE FROM networks WHERE iface=? AND ssid=?;", (iface, ssid))
+    db.commit()
 
 
-def delete_all(db):
+def delete_all(db, db_only=False):
     """
     delete all connection schemes
 
     :param db: handle onto sqlite3 database
+    :param db_only: boolean flag to decide whether a deletion concerns only the database
     :return: tuple with the total number of schemes and the number of deleted schemes
     """
 
@@ -236,12 +232,8 @@ def delete_all(db):
 
     for s in schemes:
         total += 1
-        try:
-            delete(s.interface, s.name, db)
-            deleted += 1
-        except sqlite3.Error as e:
-            print("scheme not deleted {}:{}".format(s.interface, s.name))
-            raise e
+        delete(s.interface, s.name, db, db_only)
+        deleted += 1
 
     return total, deleted
 
