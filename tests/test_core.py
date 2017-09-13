@@ -1,32 +1,31 @@
-from context import os, core, rest
+from context import os, core
 
 import unittest
+import sqlite3
 import tempfile
 
 
 class WifiCoreTestCase(unittest.TestCase):
     """
-    Before running the tests, perform the following setup operations:
-    - enable 'wlan0'
-    - connect to a network
+        Before running the tests, make sure at least one network configuration exists and is in range
     """
 
     def setUp(self):
         dir_name = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        rest.app.config['DB_PATH'] = os.path.join(dir_name, 'wifi_manager/schema')
-        rest.app.config['DB_SOURCE'] = os.path.join(rest.app.config['DB_PATH'], 'schema.sql')
-        self.db_fd, rest.app.config['DB_INSTANCE'] = tempfile.mkstemp()
-        rest.app.testing = True
+        db_source = os.path.join(dir_name, 'wifi_manager/schema/schema.sql')
 
-        with rest.app.app_context():
-            rest.init_db()
-            self.db_ro = rest.get_db()
+        self.db_fd, self.db_name = tempfile.mkstemp()
+        self.db = sqlite3.connect(self.db_name)
+
+        with open(db_source) as f:
+            self.db.executescript(f.read())
+        self.db.commit()
 
         self.iface = 'wlan0'
 
     def tearDown(self):
         os.close(self.db_fd)
-        os.unlink(rest.app.config['DB_INSTANCE'])
+        os.unlink(self.db_name)
 
     def test_0a_disable(self):
         code = core.disable(self.iface)
@@ -48,10 +47,10 @@ class WifiCoreTestCase(unittest.TestCase):
         self.assertRaises(core.WifiException, core.optimal, self.iface)
 
     def test_0f_save(self):
-        self.assertRaises(core.WifiException, core.save, self.iface, 'foo', 'foo', self.db_ro)
+        self.assertRaises(core.WifiException, core.save, self.iface, 'foo', 'foo', self.db)
 
     def test_0g_connect(self):
-        self.assertRaises(core.WifiException, core.connect, self.iface, 'foo', 'foo', self.db_ro)
+        self.assertRaises(core.WifiException, core.connect, self.iface, 'foo', 'foo', self.db)
 
     def test_1a_enable(self):
         code = core.enable(self.iface)
@@ -92,12 +91,11 @@ class WifiCoreTestCase(unittest.TestCase):
         return optimal
 
     def test_1e_save(self):
-        self.assertRaises(core.WifiException, core.save, self.iface, 'foo', 'foo', self.db_ro)
+        self.assertRaises(core.WifiException, core.save, self.iface, 'foo', 'foo', self.db)
 
     def test_2a_connect(self):
         optimal = self.optimal_test()
-        with rest.app.app_context():
-            core.connect(self.iface, optimal, None, rest.get_db())
+        core.connect(self.iface, optimal, None, self.db)
 
     def test_2b_interfaces(self):
         ifaces = core.interfaces()
@@ -111,8 +109,7 @@ class WifiCoreTestCase(unittest.TestCase):
         self.assertEqual(status, optimal)
 
     def test_3a_delete_all(self):
-        with rest.app.app_context():
-            total, deleted = core.delete_all(rest.get_db())
+        total, deleted = core.delete_all(self.db, db_only=True)
         self.assertEquals(total, deleted)
 
     def test_3b_disable(self):
