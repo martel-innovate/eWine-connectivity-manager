@@ -1,5 +1,4 @@
 from context import os, core
-
 import unittest
 import sqlite3
 import tempfile

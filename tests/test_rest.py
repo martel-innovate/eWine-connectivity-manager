@@ -1,8 +1,6 @@
 from binascii import hexlify
-
 from flask import json
 from context import rest
-
 import os
 import unittest
 import tempfile
