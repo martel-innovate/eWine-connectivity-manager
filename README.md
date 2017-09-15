@@ -3,11 +3,17 @@
 
 The app exposes a REST API to control wifi connectivity. Using the right network interface, it is possible to connect and disconnect from wifi networks, but also store and manage network configurations in /etc/network/interfaces and in a Sqlite3 database.
 
+The app runs with [Python 2.7][1].
+
+Make sure [pip][2] is installed on your system, then set up the environment:
+
+    pip install -r requirements.txt
+
 Launch the app by running the bash script: `wifi_manager/interpreter/python_wifi.sh`.
 
 The app listens by default on port 5000. Every request to the REST API must include the following header:
 
-    X-api-key: <API KEY HERE>
+    X-Api-Key: <API KEY HERE>
 
 Here is a list of all API requests, the parameters they accept, and their purpose:
 
@@ -15,7 +21,7 @@ Here is a list of all API requests, the parameters they accept, and their purpos
 | --- | --- | --- |
 | GET /networks |  | retrieve all network configurations stored in /etc/network/interfaces |
 | GET /ifaces |  | retrieve all active network interfaces |
-| GET /ifaces/`<addresses>` |  | retrieve all active network interfaces |
+| GET /ifaces/`<addresses>` | `addresses`: a non empty string  | retrieve all active network interfaces and their IP addresses |
 | GET /scan/`<iface>` | `iface`: the wifi network interface | scan a network interface for available wifi networks |
 | GET /status/`<iface>` | `iface`: same as above | find whether the given interface is connected to a network |
 | POST /enable/`<iface>` | `iface`: same as above | enable a network interface |
@@ -27,6 +33,9 @@ Here is a list of all API requests, the parameters they accept, and their purpos
 | POST /connect/`<iface>`:`<ssid>`:`<passkey>` | `iface`: same as above; `ssid`: same as above; `passkey`: same as above | connect to a secured wifi network |
 | DELETE /networks/`<iface>`:`<ssid>` | `iface`: same as above; `ssid`: same as above | delete a network configuration from /etc/network/interfaces and sqlite database |
 | DELETE /networks |  | delete all network configurations from /etc/network/interfaces and sqlite database |
+
+[1]:https://www.python.org/download/releases/2.7/
+[2]:https://pip.pypa.io/en/stable/installing/
 
 
 
