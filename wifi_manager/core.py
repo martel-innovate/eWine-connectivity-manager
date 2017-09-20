@@ -115,7 +115,7 @@ def disable(iface):
 
 def get_last_location(ssid, db):
     """
-    fetch last known location value from sqlite3 database
+    fetch last known location from sqlite3 database
 
     :param ssid: network name
     :param db: sqlite3 database handle
