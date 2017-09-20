@@ -89,7 +89,7 @@ def network_list():
     """
     return all schemes stored in /etc/network/interfaces
     
-    :return: response as JSON
+    :return: JSON response
     """
 
     stored = scheme_all()
@@ -104,7 +104,7 @@ def iface_list(addresses=''):
     """
     list network interfaces
 
-    :return: response as JSON
+    :return: JSON response
     """
 
     ifaces = interfaces(bool(addresses))
@@ -119,7 +119,7 @@ def network_scan(iface):
     return all wifi networks available on a network interface
 
     :param iface: network interface
-    :return: response as JSON
+    :return: JSON response
     """
 
     cells = cell_all(iface)
@@ -131,10 +131,10 @@ def network_scan(iface):
 @require_api_key
 def network_status(iface):
     """
-    find whether the given interface is connected to a network
+    find out whether the given interface is connected to a network
 
     :param iface: network interface
-    :return: response as JSON
+    :return: JSON response
     """
 
     ssid = status(str(iface))
@@ -148,7 +148,7 @@ def network_available(iface):
     """
     return the best Wi-Fi network available, if any
 
-    :return: response as JSON
+    :return: JSON response
     """
 
     opt = available(iface)
@@ -160,10 +160,10 @@ def network_available(iface):
 @require_api_key
 def network_location(ssid):
     """
-    fetch last known location from sqlite3 database
+    fetch last known location of a Wi-Fi network
 
     :param ssid: network name
-    :return: response as JSON
+    :return: JSON response
     """
 
     lat, lng = get_last_location(ssid, _get_db())
@@ -178,7 +178,7 @@ def network_enable(iface):
     enable a network interface
 
     :param iface: network interface
-    :return: response as JSON
+    :return: JSON response
     """
 
     enable(iface)
@@ -193,7 +193,7 @@ def network_disable(iface):
     disable a network interface
 
     :param iface: network interface
-    :return: response as JSON
+    :return: JSON response
     """
 
     disable(iface)
@@ -213,7 +213,7 @@ def network_save(iface, ssid, lat, lng, passkey=None):
     :param lat: latitude
     :param lng: longitude
     :param passkey: authentication passphrase 
-    :return: response as JSON
+    :return: JSON response
     """
 
     save(iface, ssid, passkey, _get_db(), float(lat), float(lng))
@@ -236,7 +236,7 @@ def network_connect(iface, ssid, lat, lng, passkey=None):
     :param lat: latitude
     :param lng: longitude
     :param passkey: authentication passphrase
-    :return: response as JSON
+    :return: JSON response
     """
 
     connect(iface, ssid, passkey, _get_db(), float(lat), float(lng))
@@ -254,7 +254,7 @@ def network_delete(iface, ssid, test=''):
     :param iface: network interface
     :param ssid: network name
     :param test: for tests only
-    :return: response as JSON
+    :return: JSON response
     """
 
     delete(iface, ssid, _get_db(), db_only=bool(test))
@@ -270,7 +270,7 @@ def network_delete_all(test=''):
     delete all connection schemes from /etc/network/interfaces and sqlite database
 
     :param test: for tests only
-    :return: response as JSON
+    :return: JSON response
     """
 
     total, deleted = delete_all(_get_db(), db_only=bool(test))
