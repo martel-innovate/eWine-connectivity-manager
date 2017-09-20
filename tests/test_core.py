@@ -107,11 +107,27 @@ class WifiCoreTestCase(unittest.TestCase):
         self.assertIsInstance(status, str)
         self.assertEqual(status, avail)
 
+    def test_2d_location(self):
+        avail = self.available_test()
+        lat, lng = core.get_last_location(avail, self.db)
+        self.assertIsInstance(lat, float)
+        self.assertIsInstance(lng, float)
+        self.assertEquals(lat, -1.0)
+        self.assertEquals(lng, -1.0)
+
     def test_3a_delete_all(self):
         total, deleted = core.delete_all(self.db, db_only=True)
         self.assertEquals(total, deleted)
 
-    def test_3b_disable(self):
+    def test_3b_location(self):
+        avail = self.available_test()
+        lat, lng = core.get_last_location(avail, self.db)
+        self.assertIsInstance(lat, float)
+        self.assertIsInstance(lng, float)
+        self.assertEquals(lat, -1.0)
+        self.assertEquals(lng, -1.0)
+
+    def test_3c_disable(self):
         code = core.disable(self.iface)
         self.assertEqual(code, 0)
 
