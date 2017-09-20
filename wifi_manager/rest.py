@@ -25,7 +25,7 @@ def require_api_key(route_function):
     return check_api_key
 
 
-def get_db():
+def _get_db():
     """
     get a sqlite3 database handle
     
@@ -47,7 +47,7 @@ def init_db():
     :return: 
     """
     with app.app_context():
-        db = get_db()
+        db = _get_db()
         with app.open_resource(app.config['DB_SOURCE'], mode='r') as f:
             db.executescript(f.read())
         db.commit()
@@ -187,7 +187,7 @@ def network_save(iface, ssid, lat, lng, passkey=None):
     :return: response as JSON
     """
 
-    save(iface, ssid, passkey, get_db(), float(lat), float(lng))
+    save(iface, ssid, passkey, _get_db(), float(lat), float(lng))
 
     code = 201
     resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
@@ -224,7 +224,7 @@ def network_connect(iface, ssid, lat, lng, passkey=None):
     :return: response as JSON
     """
 
-    connect(iface, ssid, passkey, get_db(), float(lat), float(lng))
+    connect(iface, ssid, passkey, _get_db(), float(lat), float(lng))
 
     return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
 
@@ -242,7 +242,7 @@ def network_delete(iface, ssid, test=''):
     :return: response as JSON
     """
 
-    delete(iface, ssid, get_db(), db_only=bool(test))
+    delete(iface, ssid, _get_db(), db_only=bool(test))
 
     return jsonify(message='deleted {}:{}'.format(iface, ssid), code=200)
 
@@ -258,6 +258,6 @@ def network_delete_all(test=''):
     :return: response as JSON
     """
 
-    total, deleted = delete_all(get_db(), db_only=bool(test))
+    total, deleted = delete_all(_get_db(), db_only=bool(test))
 
     return jsonify(message='deleted {}/{} schemes'.format(total, deleted), code=200)
