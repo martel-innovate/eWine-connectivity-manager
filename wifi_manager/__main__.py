@@ -1,3 +1,4 @@
+from __future__ import print_function
 from binascii import hexlify
 from rest import app, init_db
 import os
