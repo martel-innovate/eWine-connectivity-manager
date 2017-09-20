@@ -24,11 +24,12 @@ Here is a list of all API requests, the parameters they accept, and their purpos
 | GET /ifaces/`<addresses>` | `addresses`: a non empty string  | retrieve all active network interfaces and their IP addresses |
 | GET /scan/`<iface>` | `iface`: the wifi network interface | scan a network interface for available wifi networks |
 | GET /status/`<iface>` | `iface`: same as above | find whether the given interface is connected to a network |
+| GET /available/`<iface>` | `iface`: same as above | find the best Wi-Fi network available, if any |
+| GET /location/`<ssid>` | `ssid`: the name of the wifi network | retrieve the location of a Wi-Fi network |
 | POST /enable/`<iface>` | `iface`: same as above | enable a network interface |
 | POST /disable/`<iface>` | `iface`: same as above | disable a network interface |
 | POST /networks/`<iface>`:`<ssid>`:`<lat>`:`<lng>` | `iface`: same as above; `ssid`: the name of the wifi network; `lat`: latitude; `lng`: longitude | store the configuration of an open wifi network in /etc/network/interfaces |
 | POST /networks/`<iface>`:`<ssid>`:`<lat>`:`<lng>`:`<passkey>` | `iface`: same as above; `ssid`: same as above; `lat`: latitude; `lng`: longitude; `passkey`: password of the secured wifi network | store the configuration of a secured wifi network in /etc/network/interfaces |
-| GET /available/`<iface>` | `iface`: same as above | find the best Wi-Fi network available, if any |
 | POST /connect/`<iface>`:`<ssid>`:`<lat>`:`<lng>` | `iface`: same as above; `ssid`: same as above; `lat`: latitude; `lng`: longitude | connect to an open wifi network |
 | POST /connect/`<iface>`:`<ssid>`:`<lat>`:`<lng>`:`<passkey>` | `iface`: same as above; `ssid`: same as above; `lat`: latitude; `lng`: longitude; `passkey`: same as above | connect to a secured wifi network |
 | DELETE /networks/`<iface>`:`<ssid>` | `iface`: same as above; `ssid`: same as above | delete a network configuration from /etc/network/interfaces and sqlite database |

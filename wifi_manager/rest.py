@@ -172,6 +172,21 @@ def network_disable(iface):
     return jsonify(message='disabled {}'.format(iface), code=200)
 
 
+@app.route('/location/<ssid>')
+@require_api_key
+def network_location(ssid):
+    """
+    fetch last known location from sqlite3 database
+
+    :param ssid: network name
+    :return: response as JSON
+    """
+
+    lat, lng = get_last_location(ssid, _get_db())
+
+    return jsonify(message='{},{}'.format(lat, lng), code=200)
+
+
 @app.route('/networks/<iface>:<ssid>:<lat>:<lng>', methods=['POST'])
 @app.route('/networks/<iface>:<ssid>:<lat>:<lng>:<passkey>', methods=['POST'])
 @require_api_key
