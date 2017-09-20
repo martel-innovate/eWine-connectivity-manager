@@ -113,13 +113,38 @@ def disable(iface):
     return code
 
 
+def get_last_location(ssid, db):
+    """
+    fetch last known location value from sqlite3 database
+
+    :param ssid: network name
+    :param db: sqlite3 database handle
+    :return: matching latitude and longitude
+    """
+
+    cursor = db.execute("SELECT lat,lng FROM networks WHERE ssid=?;", (ssid,))
+    matches = cursor.fetchall()
+
+    if len(matches) > 1:
+        raise AssertionError("query resulted in multiple row matches instead of one")
+
+    if len(matches) == 1:
+        lat = matches[0][0]
+        lng = matches[0][1]
+    else:
+        lat = -1
+        lng = -1
+
+    return lat, lng
+
+
 def save(iface, ssid, passkey, db, lat=-1, lng=-1):
     """
 
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passphrase
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param lat: latitude
     :param lng: longitude
     :return: the scheme just created
@@ -144,7 +169,7 @@ def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passkey
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param lat: latitude
     :param lng: longitude
     :return: status code
@@ -197,7 +222,7 @@ def delete(iface, ssid, db, db_only=False):
 
     :param iface: network interface
     :param ssid: network name
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param db_only: boolean flag to decide whether a deletion concerns only the database
     :return:
     """
@@ -219,7 +244,7 @@ def delete_all(db, db_only=False):
     """
     delete all connection schemes
 
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param db_only: boolean flag to decide whether a deletion concerns only the database
     :return: tuple with the total number of schemes and the number of deleted schemes
     """
@@ -433,12 +458,17 @@ def _save_to_db(iface, ssid, passkey, db, lat, lng):
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passphrase
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param lat: latitude
     :param lng: longitude
     :return:
     """
 
+    # GPS location is unavailable: fetch old value
+    if lat == -1 or lng == -1:
+        lat, lng = get_last_location(ssid, db)
+
+    # save
     query = "INSERT or REPLACE INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
     db.execute(query, (iface, ssid, passkey, lat, lng))
     db.commit()
