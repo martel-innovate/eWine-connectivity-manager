@@ -193,16 +193,16 @@ def network_save(iface, ssid, passkey=None):
     return resp
 
 
-@app.route('/optimal/<iface>')
+@app.route('/available/<iface>')
 @require_api_key
-def network_optimal(iface):
+def network_available(iface):
     """
-    return the optimal Wi-Fi network, if any
+    return the best Wi-Fi network available, if any
 
     :return: response as JSON
     """
 
-    opt = optimal(iface)
+    opt = available(iface)
 
     return jsonify(message=opt, code=200)
 

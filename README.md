@@ -28,7 +28,7 @@ Here is a list of all API requests, the parameters they accept, and their purpos
 | POST /disable/`<iface>` | `iface`: same as above | disable a network interface |
 | POST /networks/`<iface>`:`<ssid>` | `iface`: same as above; `ssid`: the name of the wifi network | store the configuration of an open wifi network in /etc/network/interfaces |
 | POST /networks/`<iface>`:`<ssid>`:`<passkey>` | `iface`: same as above; `ssid`: same as above; `passkey`: password of the secured wifi network | store the configuration of a secured wifi network in /etc/network/interfaces |
-| GET /optimal/`<iface>` | `iface`: same as above | find an optimal Wi-Fi network, if any |
+| GET /available/`<iface>` | `iface`: same as above | find the best Wi-Fi network available, if any |
 | POST /connect/`<iface>`:`<ssid>` | `iface`: same as above; `ssid`: same as above | connect to an open wifi network |
 | POST /connect/`<iface>`:`<ssid>`:`<passkey>` | `iface`: same as above; `ssid`: same as above; `passkey`: same as above | connect to a secured wifi network |
 | DELETE /networks/`<iface>`:`<ssid>` | `iface`: same as above; `ssid`: same as above | delete a network configuration from /etc/network/interfaces and sqlite database |

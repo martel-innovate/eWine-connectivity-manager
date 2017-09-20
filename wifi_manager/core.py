@@ -236,9 +236,9 @@ def delete_all(db, db_only=False):
     return total, deleted
 
 
-def optimal(iface):
+def available(iface):
     """
-    return the optimal Wi-Fi network, if any
+    return the best available Wi-Fi network, if any
 
     :param iface:
     :return: the network name
@@ -372,7 +372,7 @@ def _scheme_to_dict(scheme):
 
 def _network_in_range(iface, ssid):
     """
-    find where the given network is in range
+    find whether the given network is in range
 
     :param iface: network interface
     :param ssid: network name

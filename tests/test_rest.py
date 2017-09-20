@@ -50,8 +50,8 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertEquals(resp_dict['code'], 404)
         self.assertEquals(resp_dict['message'], self.netdown)
 
-    def test_0c_optimal(self):
-        resp = self.app.get('/optimal/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+    def test_0c_available(self):
+        resp = self.app.get('/available/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
         self.assertEquals(resp_dict['message'], self.netdown)
@@ -80,8 +80,8 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertEquals(resp_dict['code'], 200)
         self.assertIsInstance(resp_dict['message'], list)
 
-    def optimal_test(self):
-        resp = self.app.get('/optimal/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+    def available_test(self):
+        resp = self.app.get('/available/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertIsInstance(resp_dict['message'], unicode)
@@ -89,18 +89,18 @@ class WifiRestTestCase(unittest.TestCase):
         return resp_dict['message']
 
     def test_1d_save(self):
-        optimal = self.optimal_test()
-        resp = self.app.post('/networks/' + self.iface + ':' + optimal, headers={'X-Api-Key': rest.app.API_KEY})
+        avail = self.available_test()
+        resp = self.app.post('/networks/' + self.iface + ':' + avail, headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 201)
-        self.assertEquals(resp_dict['message'], self.netsaved.format(self.iface, optimal))
+        self.assertEquals(resp_dict['message'], self.netsaved.format(self.iface, avail))
 
     def test_1e_connect(self):
-        optimal = self.optimal_test()
-        resp = self.app.post('/connect/' + self.iface + ':' + optimal, headers={'X-Api-Key': rest.app.API_KEY})
+        avail = self.available_test()
+        resp = self.app.post('/connect/' + self.iface + ':' + avail, headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
-        self.assertEquals(resp_dict['message'], self.netconnected.format(self.iface, optimal))
+        self.assertEquals(resp_dict['message'], self.netconnected.format(self.iface, avail))
 
     def stored_networks(self):
         resp = self.app.get('/networks', headers={'X-Api-Key': rest.app.API_KEY})
@@ -149,7 +149,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.single_test_api_key('/enable/' + self.iface, 'POST')
         self.single_test_api_key('/disable/' + self.iface, 'POST')
         self.single_test_api_key('/networks/iface:ssid', 'POST')
-        self.single_test_api_key('/optimal/' + self.iface, 'GET')
+        self.single_test_api_key('/available/' + self.iface, 'GET')
         self.single_test_api_key('/connect/iface:ssid', 'POST')
         self.single_test_api_key('/networks/iface:ssid', 'DELETE')
         self.single_test_api_key('/networks', 'DELETE')
