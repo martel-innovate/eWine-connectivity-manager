@@ -23,6 +23,21 @@ class WifiException(Exception):
         self.code = code
 
 
+def scheme_all():
+    """
+    return all schemes stored in /etc/network/interfaces
+
+    :return: list of schemes as json string
+    """
+    schemes = Scheme.all()
+    res = []
+
+    for s in schemes:
+        res.append(_scheme_to_dict(s))
+
+    return res
+
+
 def interfaces(addresses=False):
     """
     list network interfaces
@@ -68,6 +83,28 @@ def interfaces(addresses=False):
     return ifaces
 
 
+def cell_all(iface):
+    """
+    return all cells available on the given network interface, sorted by signal
+
+    :param iface: network interface
+    :return: list of cells as json string
+    """
+
+    try:
+        cells = Cell.all(iface)
+    except InterfaceError as e:
+        raise WifiException(e.message, 404)
+
+    cells.sort(key=lambda cell: cell.signal, reverse=True)
+
+    res = []
+    for c in cells:
+        res.append(_cell_to_dict(c))
+
+    return res
+
+
 def status(iface):
     """
     retrieve the network the interface is connected to
@@ -79,6 +116,51 @@ def status(iface):
     wifi = Wireless(iface)
     ssid = wifi.getEssid()
     return ssid
+
+
+def available(iface):
+    """
+    return the best available Wi-Fi network, if any
+
+    :param iface:
+    :return: the network name
+    """
+
+    scanned = cell_all(iface)
+    stored = scheme_all()
+
+    for sc in scanned:
+        for st in stored:
+            st_name = st["name"]
+            if sc["ssid"] == st_name:
+                return st_name
+
+    return ''
+
+
+def get_last_location(ssid, db):
+    """
+    fetch last known location from sqlite3 database
+
+    :param ssid: network name
+    :param db: sqlite3 database handle
+    :return: matching latitude and longitude
+    """
+
+    cursor = db.execute("SELECT lat,lng FROM networks WHERE ssid=?;", (ssid,))
+    matches = cursor.fetchall()
+
+    if len(matches) > 1:
+        raise AssertionError("query resulted in multiple row matches instead of one")
+
+    if len(matches) == 1:
+        lat = matches[0][0]
+        lng = matches[0][1]
+    else:
+        lat = -1
+        lng = -1
+
+    return lat, lng
 
 
 def enable(iface):
@@ -111,31 +193,6 @@ def disable(iface):
         raise WifiException("error disabling {}".format(iface), 500)
 
     return code
-
-
-def get_last_location(ssid, db):
-    """
-    fetch last known location from sqlite3 database
-
-    :param ssid: network name
-    :param db: sqlite3 database handle
-    :return: matching latitude and longitude
-    """
-
-    cursor = db.execute("SELECT lat,lng FROM networks WHERE ssid=?;", (ssid,))
-    matches = cursor.fetchall()
-
-    if len(matches) > 1:
-        raise AssertionError("query resulted in multiple row matches instead of one")
-
-    if len(matches) == 1:
-        lat = matches[0][0]
-        lng = matches[0][1]
-    else:
-        lat = -1
-        lng = -1
-
-    return lat, lng
 
 
 def save(iface, ssid, passkey, db, lat=-1, lng=-1):
@@ -259,63 +316,6 @@ def delete_all(db, db_only=False):
         deleted += 1
 
     return total, deleted
-
-
-def available(iface):
-    """
-    return the best available Wi-Fi network, if any
-
-    :param iface:
-    :return: the network name
-    """
-
-    scanned = cell_all(iface)
-    stored = scheme_all()
-
-    for sc in scanned:
-        for st in stored:
-            st_name = st["name"]
-            if sc["ssid"] == st_name:
-                return st_name
-
-    return ''
-
-
-def cell_all(iface):
-    """
-    return all cells available on the given network interface, sorted by signal
-
-    :param iface: network interface
-    :return: list of cells as json string
-    """
-
-    try:
-        cells = Cell.all(iface)
-    except InterfaceError as e:
-        raise WifiException(e.message, 404)
-
-    cells.sort(key=lambda cell: cell.signal, reverse=True)
-
-    res = []
-    for c in cells:
-        res.append(_cell_to_dict(c))
-
-    return res
-
-
-def scheme_all():
-    """
-    return all schemes stored in /etc/network/interfaces
-
-    :return: list of schemes as json string
-    """
-    schemes = Scheme.all()
-    res = []
-
-    for s in schemes:
-        res.append(_scheme_to_dict(s))
-
-    return res
 
 
 def _scheme_find(iface, ssid):

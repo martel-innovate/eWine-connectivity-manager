@@ -142,6 +142,35 @@ def network_status(iface):
     return jsonify(message=ssid, code=200)
 
 
+@app.route('/available/<iface>')
+@require_api_key
+def network_available(iface):
+    """
+    return the best Wi-Fi network available, if any
+
+    :return: response as JSON
+    """
+
+    opt = available(iface)
+
+    return jsonify(message=opt, code=200)
+
+
+@app.route('/location/<ssid>')
+@require_api_key
+def network_location(ssid):
+    """
+    fetch last known location from sqlite3 database
+
+    :param ssid: network name
+    :return: response as JSON
+    """
+
+    lat, lng = get_last_location(ssid, _get_db())
+
+    return jsonify(message='{},{}'.format(lat, lng), code=200)
+
+
 @app.route('/enable/<iface>', methods=['POST'])
 @require_api_key
 def network_enable(iface):
@@ -172,21 +201,6 @@ def network_disable(iface):
     return jsonify(message='disabled {}'.format(iface), code=200)
 
 
-@app.route('/location/<ssid>')
-@require_api_key
-def network_location(ssid):
-    """
-    fetch last known location from sqlite3 database
-
-    :param ssid: network name
-    :return: response as JSON
-    """
-
-    lat, lng = get_last_location(ssid, _get_db())
-
-    return jsonify(message='{},{}'.format(lat, lng), code=200)
-
-
 @app.route('/networks/<iface>:<ssid>:<lat>:<lng>', methods=['POST'])
 @app.route('/networks/<iface>:<ssid>:<lat>:<lng>:<passkey>', methods=['POST'])
 @require_api_key
@@ -208,20 +222,6 @@ def network_save(iface, ssid, lat, lng, passkey=None):
     resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
     resp.status_code = code
     return resp
-
-
-@app.route('/available/<iface>')
-@require_api_key
-def network_available(iface):
-    """
-    return the best Wi-Fi network available, if any
-
-    :return: response as JSON
-    """
-
-    opt = available(iface)
-
-    return jsonify(message=opt, code=200)
 
 
 @app.route('/connect/<iface>:<ssid>:<lat>:<lng>', methods=['POST'])
