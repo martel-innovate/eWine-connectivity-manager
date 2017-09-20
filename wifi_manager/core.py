@@ -157,8 +157,8 @@ def get_last_location(ssid, db):
         lat = matches[0][0]
         lng = matches[0][1]
     else:
-        lat = -1
-        lng = -1
+        lat = -1.0
+        lng = -1.0
 
     return lat, lng
 
@@ -195,7 +195,7 @@ def disable(iface):
     return code
 
 
-def save(iface, ssid, passkey, db, lat=-1, lng=-1):
+def save(iface, ssid, passkey, db, lat=-1.0, lng=-1.0):
     """
 
     :param iface: network interface
@@ -219,7 +219,7 @@ def save(iface, ssid, passkey, db, lat=-1, lng=-1):
     return scheme
 
 
-def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
+def connect(iface, ssid, passkey, db, lat=-1.0, lng=-1.0):
     """
     connect to a network
 
@@ -465,7 +465,7 @@ def _save_to_db(iface, ssid, passkey, db, lat, lng):
     """
 
     # GPS location is unavailable: fetch old value
-    if lat == -1 or lng == -1:
+    if lat == -1.0 or lng == -1.0:
         lat, lng = get_last_location(ssid, db)
 
     # save
