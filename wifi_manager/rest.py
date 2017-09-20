@@ -27,9 +27,9 @@ def require_api_key(route_function):
 
 def get_db():
     """
-    get a handle onto sqlite3 database
+    get a sqlite3 database handle
     
-    :return: handle onto sqlite3 database
+    :return: sqlite3 database handle
     """
 
     db = getattr(g, '_database', None)
@@ -172,20 +172,22 @@ def network_disable(iface):
     return jsonify(message='disabled {}'.format(iface), code=200)
 
 
-@app.route('/networks/<iface>:<ssid>', methods=['POST'])
-@app.route('/networks/<iface>:<ssid>:<passkey>', methods=['POST'])
+@app.route('/networks/<iface>:<ssid>:<lat>:<lng>', methods=['POST'])
+@app.route('/networks/<iface>:<ssid>:<lat>:<lng>:<passkey>', methods=['POST'])
 @require_api_key
-def network_save(iface, ssid, passkey=None):
+def network_save(iface, ssid, lat, lng, passkey=None):
     """
     store new network scheme in /etc/network/interfaces
-    
+
     :param iface: network interface
     :param ssid: network name
+    :param lat: latitude
+    :param lng: longitude
     :param passkey: authentication passphrase 
     :return: response as JSON
     """
 
-    save(iface, ssid, passkey, db=get_db())
+    save(iface, ssid, passkey, get_db(), float(lat), float(lng))
 
     code = 201
     resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
@@ -207,20 +209,22 @@ def network_available(iface):
     return jsonify(message=opt, code=200)
 
 
-@app.route('/connect/<iface>:<ssid>', methods=['POST'])
-@app.route('/connect/<iface>:<ssid>:<passkey>', methods=['POST'])
+@app.route('/connect/<iface>:<ssid>:<lat>:<lng>', methods=['POST'])
+@app.route('/connect/<iface>:<ssid>:<lat>:<lng>:<passkey>', methods=['POST'])
 @require_api_key
-def network_connect(iface, ssid, passkey=None):
+def network_connect(iface, ssid, lat, lng, passkey=None):
     """
     connect to a network
 
     :param iface: network interface
     :param ssid: network name
+    :param lat: latitude
+    :param lng: longitude
     :param passkey: authentication passphrase
     :return: response as JSON
     """
 
-    connect(iface, ssid, passkey, db=get_db())
+    connect(iface, ssid, passkey, get_db(), float(lat), float(lng))
 
     return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
 
