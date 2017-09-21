@@ -159,9 +159,9 @@ def network_available(iface):
     :return: JSON response
     """
 
-    opt = available(iface)
+    avail = available(iface)
 
-    return jsonify(message=opt, code=200)
+    return jsonify(message=avail, code=200)
 
 
 @app.route('/location/<ssid>')
