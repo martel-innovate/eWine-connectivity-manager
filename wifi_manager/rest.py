@@ -25,11 +25,11 @@ def require_api_key(route_function):
     return check_api_key
 
 
-def get_db():
+def _get_db():
     """
-    get a handle onto sqlite3 database
+    get a sqlite3 database handle
     
-    :return: handle onto sqlite3 database
+    :return: sqlite3 database handle
     """
 
     db = getattr(g, '_database', None)
@@ -47,7 +47,7 @@ def init_db():
     :return: 
     """
     with app.app_context():
-        db = get_db()
+        db = _get_db()
         with app.open_resource(app.config['DB_SOURCE'], mode='r') as f:
             db.executescript(f.read())
         db.commit()
@@ -84,15 +84,22 @@ def handle_sqlite_exception(e):
 
 
 @app.route('/networks')
+@app.route('/networks/<gps>')
 @require_api_key
-def network_list():
+def network_list(gps=''):
     """
     return all schemes stored in /etc/network/interfaces
-    
-    :return: response as JSON
+
+    :param gps: if non-empty, include GPS location in the response
+    :return: JSON response
     """
 
-    stored = scheme_all()
+    gps = bool(gps)
+
+    if gps:
+        stored = db_all(_get_db())
+    else:
+        stored = scheme_all()
 
     return jsonify(message=stored, code=200)
 
@@ -104,7 +111,8 @@ def iface_list(addresses=''):
     """
     list network interfaces
 
-    :return: response as JSON
+    :param addresses: if non-empty, include IP addresses in the response
+    :return: JSON response
     """
 
     ifaces = interfaces(bool(addresses))
@@ -119,7 +127,7 @@ def network_scan(iface):
     return all wifi networks available on a network interface
 
     :param iface: network interface
-    :return: response as JSON
+    :return: JSON response
     """
 
     cells = cell_all(iface)
@@ -131,15 +139,44 @@ def network_scan(iface):
 @require_api_key
 def network_status(iface):
     """
-    find whether the given interface is connected to a network
+    find out whether the given interface is connected to a network
 
     :param iface: network interface
-    :return: response as JSON
+    :return: JSON response
     """
 
     ssid = status(str(iface))
 
     return jsonify(message=ssid, code=200)
+
+
+@app.route('/available/<iface>')
+@require_api_key
+def network_available(iface):
+    """
+    return the best Wi-Fi network available, if any
+
+    :return: JSON response
+    """
+
+    avail = available(iface)
+
+    return jsonify(message=avail, code=200)
+
+
+@app.route('/location/<ssid>')
+@require_api_key
+def network_location(ssid):
+    """
+    fetch last known location of a Wi-Fi network
+
+    :param ssid: network name
+    :return: JSON response
+    """
+
+    lat, lng = get_last_location(ssid, _get_db())
+
+    return jsonify(message='{},{}'.format(lat, lng), code=200)
 
 
 @app.route('/enable/<iface>', methods=['POST'])
@@ -149,7 +186,7 @@ def network_enable(iface):
     enable a network interface
 
     :param iface: network interface
-    :return: response as JSON
+    :return: JSON response
     """
 
     enable(iface)
@@ -164,7 +201,7 @@ def network_disable(iface):
     disable a network interface
 
     :param iface: network interface
-    :return: response as JSON
+    :return: JSON response
     """
 
     disable(iface)
@@ -172,20 +209,22 @@ def network_disable(iface):
     return jsonify(message='disabled {}'.format(iface), code=200)
 
 
-@app.route('/networks/<iface>:<ssid>', methods=['POST'])
-@app.route('/networks/<iface>:<ssid>:<passkey>', methods=['POST'])
+@app.route('/networks/<iface>:<ssid>:<lat>:<lng>', methods=['POST'])
+@app.route('/networks/<iface>:<ssid>:<lat>:<lng>:<passkey>', methods=['POST'])
 @require_api_key
-def network_save(iface, ssid, passkey=None):
+def network_save(iface, ssid, lat, lng, passkey=None):
     """
     store new network scheme in /etc/network/interfaces
-    
+
     :param iface: network interface
     :param ssid: network name
+    :param lat: latitude
+    :param lng: longitude
     :param passkey: authentication passphrase 
-    :return: response as JSON
+    :return: JSON response
     """
 
-    save(iface, ssid, passkey, db=get_db())
+    save(iface, ssid, passkey, _get_db(), float(lat), float(lng))
 
     code = 201
     resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
@@ -193,34 +232,22 @@ def network_save(iface, ssid, passkey=None):
     return resp
 
 
-@app.route('/optimal/<iface>')
+@app.route('/connect/<iface>:<ssid>:<lat>:<lng>', methods=['POST'])
+@app.route('/connect/<iface>:<ssid>:<lat>:<lng>:<passkey>', methods=['POST'])
 @require_api_key
-def network_optimal(iface):
-    """
-    return the optimal Wi-Fi network, if any
-
-    :return: response as JSON
-    """
-
-    opt = optimal(iface)
-
-    return jsonify(message=opt, code=200)
-
-
-@app.route('/connect/<iface>:<ssid>', methods=['POST'])
-@app.route('/connect/<iface>:<ssid>:<passkey>', methods=['POST'])
-@require_api_key
-def network_connect(iface, ssid, passkey=None):
+def network_connect(iface, ssid, lat, lng, passkey=None):
     """
     connect to a network
 
     :param iface: network interface
     :param ssid: network name
+    :param lat: latitude
+    :param lng: longitude
     :param passkey: authentication passphrase
-    :return: response as JSON
+    :return: JSON response
     """
 
-    connect(iface, ssid, passkey, db=get_db())
+    connect(iface, ssid, passkey, _get_db(), float(lat), float(lng))
 
     return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
 
@@ -234,11 +261,11 @@ def network_delete(iface, ssid, test=''):
 
     :param iface: network interface
     :param ssid: network name
-    :param test: for tests only
-    :return: response as JSON
+    :param test: if non-empty, perform deletion in the database only (for tests)
+    :return: JSON response
     """
 
-    delete(iface, ssid, get_db(), db_only=bool(test))
+    delete(iface, ssid, _get_db(), db_only=bool(test))
 
     return jsonify(message='deleted {}:{}'.format(iface, ssid), code=200)
 
@@ -250,10 +277,10 @@ def network_delete_all(test=''):
     """
     delete all connection schemes from /etc/network/interfaces and sqlite database
 
-    :param test: for tests only
-    :return: response as JSON
+    :param test: if non-empty, perform deletion in the database only (for tests)
+    :return: JSON response
     """
 
-    total, deleted = delete_all(get_db(), db_only=bool(test))
+    total, deleted = delete_all(_get_db(), db_only=bool(test))
 
     return jsonify(message='deleted {}/{} schemes'.format(total, deleted), code=200)

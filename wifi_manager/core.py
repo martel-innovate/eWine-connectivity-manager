@@ -14,6 +14,7 @@ import time
 SCHEDULER = sched.scheduler(time.time, time.sleep)
 RETRY_AFTER = 3  # seconds
 TIMEOUT = 60  # seconds
+GPS_INF = -1000.0
 
 
 class WifiException(Exception):
@@ -21,6 +22,38 @@ class WifiException(Exception):
         super(WifiException, self).__init__(message)
         self.message = message
         self.code = code
+
+
+def scheme_all():
+    """
+    return all schemes stored in /etc/network/interfaces
+
+    :return: list of schemes as json string
+    """
+    schemes = Scheme.all()
+    res = []
+
+    for s in schemes:
+        res.append(_scheme_to_dict(s))
+
+    return res
+
+
+def db_all(db):
+    """
+
+    :param db: sqlite3 database handle
+    :return: list of network database entries
+    """
+
+    cursor = db.execute("SELECT * FROM networks")
+    matches = cursor.fetchall()
+    res = []
+
+    for m in matches:
+        res.append(_db_to_dict(m))
+
+    return res
 
 
 def interfaces(addresses=False):
@@ -68,6 +101,28 @@ def interfaces(addresses=False):
     return ifaces
 
 
+def cell_all(iface):
+    """
+    return all cells available on the given network interface, sorted by signal
+
+    :param iface: network interface
+    :return: list of cells as json string
+    """
+
+    try:
+        cells = Cell.all(iface)
+    except InterfaceError as e:
+        raise WifiException(e.message, 404)
+
+    cells.sort(key=lambda cell: cell.signal, reverse=True)
+
+    res = []
+    for c in cells:
+        res.append(_cell_to_dict(c))
+
+    return res
+
+
 def status(iface):
     """
     retrieve the network the interface is connected to
@@ -79,6 +134,51 @@ def status(iface):
     wifi = Wireless(iface)
     ssid = wifi.getEssid()
     return ssid
+
+
+def available(iface):
+    """
+    return the best available Wi-Fi network, if any
+
+    :param iface:
+    :return: the network name
+    """
+
+    scanned = cell_all(iface)
+    stored = scheme_all()
+
+    for sc in scanned:
+        for st in stored:
+            st_name = st["name"]
+            if sc["ssid"] == st_name:
+                return st_name
+
+    return ''
+
+
+def get_last_location(ssid, db):
+    """
+    fetch last known location from sqlite3 database
+
+    :param ssid: network name
+    :param db: sqlite3 database handle
+    :return: matching latitude and longitude
+    """
+
+    cursor = db.execute("SELECT lat,lng FROM networks WHERE ssid=?;", (ssid,))
+    matches = cursor.fetchall()
+
+    if len(matches) > 1:
+        raise AssertionError("query resulted in multiple row matches instead of one")
+
+    if len(matches) == 1:
+        lat = matches[0][0]
+        lng = matches[0][1]
+    else:
+        lat = GPS_INF
+        lng = GPS_INF
+
+    return lat, lng
 
 
 def enable(iface):
@@ -113,13 +213,13 @@ def disable(iface):
     return code
 
 
-def save(iface, ssid, passkey, db, lat=-1, lng=-1):
+def save(iface, ssid, passkey, db, lat=GPS_INF, lng=GPS_INF):
     """
 
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passphrase
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param lat: latitude
     :param lng: longitude
     :return: the scheme just created
@@ -137,14 +237,14 @@ def save(iface, ssid, passkey, db, lat=-1, lng=-1):
     return scheme
 
 
-def connect(iface, ssid, passkey, db, lat=-1, lng=-1):
+def connect(iface, ssid, passkey, db, lat=GPS_INF, lng=GPS_INF):
     """
     connect to a network
 
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passkey
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param lat: latitude
     :param lng: longitude
     :return: status code
@@ -197,7 +297,7 @@ def delete(iface, ssid, db, db_only=False):
 
     :param iface: network interface
     :param ssid: network name
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param db_only: boolean flag to decide whether a deletion concerns only the database
     :return:
     """
@@ -219,7 +319,7 @@ def delete_all(db, db_only=False):
     """
     delete all connection schemes
 
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param db_only: boolean flag to decide whether a deletion concerns only the database
     :return: tuple with the total number of schemes and the number of deleted schemes
     """
@@ -234,63 +334,6 @@ def delete_all(db, db_only=False):
         deleted += 1
 
     return total, deleted
-
-
-def optimal(iface):
-    """
-    return the optimal Wi-Fi network, if any
-
-    :param iface:
-    :return: the network name
-    """
-
-    scanned = cell_all(iface)
-    stored = scheme_all()
-
-    for sc in scanned:
-        for st in stored:
-            st_name = st["name"]
-            if sc["ssid"] == st_name:
-                return st_name
-
-    return ''
-
-
-def cell_all(iface):
-    """
-    return all cells available on the given network interface, sorted by signal
-
-    :param iface: network interface
-    :return: list of cells as json string
-    """
-
-    try:
-        cells = Cell.all(iface)
-    except InterfaceError as e:
-        raise WifiException(e.message, 404)
-
-    cells.sort(key=lambda cell: cell.signal, reverse=True)
-
-    res = []
-    for c in cells:
-        res.append(_cell_to_dict(c))
-
-    return res
-
-
-def scheme_all():
-    """
-    return all schemes stored in /etc/network/interfaces
-
-    :return: list of schemes as json string
-    """
-    schemes = Scheme.all()
-    res = []
-
-    for s in schemes:
-        res.append(_scheme_to_dict(s))
-
-    return res
 
 
 def _scheme_find(iface, ssid):
@@ -370,9 +413,28 @@ def _scheme_to_dict(scheme):
     return scheme_dict
 
 
+def _db_to_dict(match):
+    """
+    convert a database network entry to dictionary
+
+    :param match: database network entry
+    :return: the entry as dictionary
+    """
+
+    match_dict = {
+        "iface": match[0],
+        "ssid": match[1],
+        "passkey": match[2],
+        "lat": match[3],
+        "lng": match[4]
+    }
+
+    return match_dict
+
+
 def _network_in_range(iface, ssid):
     """
-    find where the given network is in range
+    find whether the given network is in range
 
     :param iface: network interface
     :param ssid: network name
@@ -433,12 +495,17 @@ def _save_to_db(iface, ssid, passkey, db, lat, lng):
     :param iface: network interface
     :param ssid: network name
     :param passkey: authentication passphrase
-    :param db: handle onto sqlite3 database
+    :param db: sqlite3 database handle
     :param lat: latitude
     :param lng: longitude
     :return:
     """
 
+    # GPS location is unavailable: fetch old value
+    if lat == GPS_INF or lng == GPS_INF:
+        lat, lng = get_last_location(ssid, db)
+
+    # save
     query = "INSERT or REPLACE INTO networks(iface, ssid, passkey, lat, lng) VALUES (?, ?, ?, ?, ?);"
     db.execute(query, (iface, ssid, passkey, lat, lng))
     db.commit()

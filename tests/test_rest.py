@@ -28,60 +28,71 @@ class WifiRestTestCase(unittest.TestCase):
         self.iface = 'wlan0'
         self.cell = 'foo'
         self.cellnotfound = "cell {}: not found".format(self.cell)
-        self.netdown = self.iface + "     Interface doesn't support scanning : Network is down"
+        self.netdown = "Network is down"
         self.netsaved = "created {}:{}"
         self.netconnected = "connected {}:{}"
         self.netalldeleted = "deleted {}/{} schemes"
         self.netnotfound = "scheme {}: not found"
+        self.gps_inf = -1000.0
 
     def tearDown(self):
         os.close(self.db_fd)
         os.unlink(rest.app.config['DB_INSTANCE'])
 
     def test_0a_disable(self):
-        resp = self.app.post('/disable/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.post('/disable/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertEquals(resp_dict['message'], 'disabled {}'.format(self.iface))
 
     def test_0b_scan(self):
-        resp = self.app.get('/scan/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.get('/scan/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
-        self.assertEquals(resp_dict['message'], self.netdown)
+        msg = resp_dict['message']
+        self.assertTrue(self.iface in msg)
+        self.assertTrue(self.netdown in msg)
 
-    def test_0c_optimal(self):
-        resp = self.app.get('/optimal/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+    def test_0c_available(self):
+        resp = self.app.get('/available/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
-        self.assertEquals(resp_dict['message'], self.netdown)
+        msg = resp_dict['message']
+        self.assertTrue(self.iface in msg)
+        self.assertTrue(self.netdown in msg)
 
     def test_0d_save(self):
-        resp = self.app.post('/networks/' + self.iface + ':foo', headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.post('/networks/{}:foo:{}:{}'.format(self.iface, self.gps_inf, self.gps_inf),
+                             headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
-        self.assertEquals(resp_dict['message'], self.netdown)
+        msg = resp_dict['message']
+        self.assertTrue(self.iface in msg)
+        self.assertTrue(self.netdown in msg)
 
     def test_0e_connect(self):
-        resp = self.app.post('/connect/' + self.iface + ':foo', headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.post('/connect/{}:foo:{}:{}'.format(self.iface, self.gps_inf, self.gps_inf),
+                             headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
-        self.assertEquals(resp_dict['message'], self.netdown)
+        msg = resp_dict['message']
+        self.assertTrue(self.iface in msg)
+        self.assertTrue(self.netdown in msg)
 
     def test_1a_enable(self):
-        resp = self.app.post('/enable/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.post('/enable/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertEquals(resp_dict['message'], 'enabled {}'.format(self.iface))
 
     def test_1b_scan(self):
-        resp = self.app.get('/scan/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.get('/scan/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertIsInstance(resp_dict['message'], list)
 
-    def optimal_test(self):
-        resp = self.app.get('/optimal/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+    def available_test(self):
+        resp = self.app.get('/available/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertIsInstance(resp_dict['message'], unicode)
@@ -89,18 +100,34 @@ class WifiRestTestCase(unittest.TestCase):
         return resp_dict['message']
 
     def test_1d_save(self):
-        optimal = self.optimal_test()
-        resp = self.app.post('/networks/' + self.iface + ':' + optimal, headers={'X-Api-Key': rest.app.API_KEY})
+        avail = self.available_test()
+        resp = self.app.post('/networks/{}:{}:{}:{}'.format(self.iface, avail, self.gps_inf, self.gps_inf),
+                             headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 201)
-        self.assertEquals(resp_dict['message'], self.netsaved.format(self.iface, optimal))
+        self.assertEquals(resp_dict['message'], self.netsaved.format(self.iface, avail))
 
     def test_1e_connect(self):
-        optimal = self.optimal_test()
-        resp = self.app.post('/connect/' + self.iface + ':' + optimal, headers={'X-Api-Key': rest.app.API_KEY})
+        avail = self.available_test()
+        resp = self.app.post('/connect/{}:{}:{}:{}'.format(self.iface, avail, self.gps_inf, self.gps_inf),
+                             headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
-        self.assertEquals(resp_dict['message'], self.netconnected.format(self.iface, optimal))
+        self.assertEquals(resp_dict['message'], self.netconnected.format(self.iface, avail))
+
+    def test_1f_location(self):
+        avail = self.available_test()
+        resp = self.app.get('/location/{}'.format(avail), headers={'X-Api-Key': rest.app.API_KEY})
+        resp_dict = json.loads(resp.get_data())
+        msg = resp_dict['message']
+        self.assertEquals(resp_dict['code'], 200)
+        self.assertIsInstance(msg, unicode)
+        values = msg.split(",")
+        self.assertEquals(len(values), 2)
+        lat = float(values[0])
+        lng = float(values[1])
+        self.assertTrue(lat, self.gps_inf)
+        self.assertTrue(lng, self.gps_inf)
 
     def stored_networks(self):
         resp = self.app.get('/networks', headers={'X-Api-Key': rest.app.API_KEY})
@@ -117,13 +144,27 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertEquals(resp_dict['message'], self.netalldeleted.format(n, n))
 
     def test_2b_delete(self):
-        resp = self.app.delete('/networks/' + self.iface + ':foo', headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.delete('/networks/{}:foo'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
         self.assertEquals(resp_dict['message'], self.netnotfound.format('foo'))
 
-    def test_2c_disable(self):
-        resp = self.app.post('/disable/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+    def test_2c_location(self):
+        avail = self.available_test()
+        resp = self.app.get('/location/{}'.format(avail), headers={'X-Api-Key': rest.app.API_KEY})
+        resp_dict = json.loads(resp.get_data())
+        msg = resp_dict['message']
+        self.assertEquals(resp_dict['code'], 200)
+        self.assertIsInstance(msg, unicode)
+        values = msg.split(",")
+        self.assertEquals(len(values), 2)
+        lat = float(values[0])
+        lng = float(values[1])
+        self.assertEquals(lat, self.gps_inf)
+        self.assertEquals(lng, self.gps_inf)
+
+    def test_2d_disable(self):
+        resp = self.app.post('/disable/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertEquals(resp_dict['message'], 'disabled {}'.format(self.iface))
@@ -144,13 +185,14 @@ class WifiRestTestCase(unittest.TestCase):
     def test_all_api_key(self):
         self.single_test_api_key('/networks', 'GET')
         self.single_test_api_key('/ifaces', 'GET')
-        self.single_test_api_key('/scan/' + self.iface, 'GET')
-        self.single_test_api_key('/status/' + self.iface, 'GET')
-        self.single_test_api_key('/enable/' + self.iface, 'POST')
-        self.single_test_api_key('/disable/' + self.iface, 'POST')
-        self.single_test_api_key('/networks/iface:ssid', 'POST')
-        self.single_test_api_key('/optimal/' + self.iface, 'GET')
-        self.single_test_api_key('/connect/iface:ssid', 'POST')
+        self.single_test_api_key('/scan/{}'.format(self.iface), 'GET')
+        self.single_test_api_key('/status/{}'.format(self.iface), 'GET')
+        self.single_test_api_key('/available/{}'.format(self.iface), 'GET')
+        self.single_test_api_key('/location/ssid', 'GET')
+        self.single_test_api_key('/enable/{}'.format(self.iface), 'POST')
+        self.single_test_api_key('/disable/{}'.format(self.iface), 'POST')
+        self.single_test_api_key('/networks/iface:ssid:{}:{}'.format(self.gps_inf, self.gps_inf), 'POST')
+        self.single_test_api_key('/connect/iface:ssid:{}:{}'.format(self.gps_inf, self.gps_inf), 'POST')
         self.single_test_api_key('/networks/iface:ssid', 'DELETE')
         self.single_test_api_key('/networks', 'DELETE')
 
@@ -172,7 +214,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertIsInstance(resp2_dict['message'], list)
 
     def test_status(self):
-        resp = self.app.get('/status/' + self.iface, headers={'X-Api-Key': rest.app.API_KEY})
+        resp = self.app.get('/status/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertIsInstance(resp_dict['message'], unicode)

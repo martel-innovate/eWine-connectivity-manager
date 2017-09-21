@@ -21,6 +21,7 @@ class WifiCoreTestCase(unittest.TestCase):
         self.db.commit()
 
         self.iface = 'wlan0'
+        self.gps_inf = -1000.0
 
     def tearDown(self):
         os.close(self.db_fd)
@@ -42,8 +43,8 @@ class WifiCoreTestCase(unittest.TestCase):
     def test_0d_scan(self):
         self.assertRaises(core.WifiException, core.cell_all, self.iface)
 
-    def test_0e_optimal(self):
-        self.assertRaises(core.WifiException, core.optimal, self.iface)
+    def test_0e_available(self):
+        self.assertRaises(core.WifiException, core.available, self.iface)
 
     def test_0f_save(self):
         self.assertRaises(core.WifiException, core.save, self.iface, 'foo', 'foo', self.db)
@@ -82,19 +83,19 @@ class WifiCoreTestCase(unittest.TestCase):
             if c["encrypted"]:
                 self.assertIsInstance(c["encryption_type"], str)
 
-    def optimal_test(self):
-        # the optimal network configuration must be stored before running the test
-        optimal = core.optimal(self.iface)
-        self.assertIsInstance(optimal, str)
-        self.assertTrue(len(optimal) > 0)
-        return optimal
+    def available_test(self):
+        # the network configuration must be stored before running the test
+        avail = core.available(self.iface)
+        self.assertIsInstance(avail, str)
+        self.assertTrue(len(avail) > 0)
+        return avail
 
     def test_1e_save(self):
         self.assertRaises(core.WifiException, core.save, self.iface, 'foo', 'foo', self.db)
 
     def test_2a_connect(self):
-        optimal = self.optimal_test()
-        core.connect(self.iface, optimal, None, self.db)
+        avail = self.available_test()
+        core.connect(self.iface, avail, None, self.db)
 
     def test_2b_interfaces(self):
         ifaces = core.interfaces()
@@ -103,15 +104,31 @@ class WifiCoreTestCase(unittest.TestCase):
 
     def test_2c_status(self):
         status = core.status(self.iface)
-        optimal = self.optimal_test()
+        avail = self.available_test()
         self.assertIsInstance(status, str)
-        self.assertEqual(status, optimal)
+        self.assertEqual(status, avail)
+
+    def test_2d_location(self):
+        avail = self.available_test()
+        lat, lng = core.get_last_location(avail, self.db)
+        self.assertIsInstance(lat, float)
+        self.assertIsInstance(lng, float)
+        self.assertEquals(lat, self.gps_inf)
+        self.assertEquals(lng, self.gps_inf)
 
     def test_3a_delete_all(self):
         total, deleted = core.delete_all(self.db, db_only=True)
         self.assertEquals(total, deleted)
 
-    def test_3b_disable(self):
+    def test_3b_location(self):
+        avail = self.available_test()
+        lat, lng = core.get_last_location(avail, self.db)
+        self.assertIsInstance(lat, float)
+        self.assertIsInstance(lng, float)
+        self.assertEquals(lat, self.gps_inf)
+        self.assertEquals(lng, self.gps_inf)
+
+    def test_3c_disable(self):
         code = core.disable(self.iface)
         self.assertEqual(code, 0)
 
