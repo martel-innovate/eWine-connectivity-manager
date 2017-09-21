@@ -84,15 +84,21 @@ def handle_sqlite_exception(e):
 
 
 @app.route('/networks')
+@app.route('/networks/<db>')
 @require_api_key
-def network_list():
+def network_list(db=''):
     """
     return all schemes stored in /etc/network/interfaces
     
     :return: JSON response
     """
 
-    stored = scheme_all()
+    db = bool(db)
+
+    if db:
+        stored = db_all(_get_db())
+    else:
+        stored = scheme_all()
 
     return jsonify(message=stored, code=200)
 

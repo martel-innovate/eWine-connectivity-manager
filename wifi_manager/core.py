@@ -39,6 +39,23 @@ def scheme_all():
     return res
 
 
+def db_all(db):
+    """
+
+    :param db: sqlite3 database handle
+    :return: list of network database entries
+    """
+
+    cursor = db.execute("SELECT * FROM networks")
+    matches = cursor.fetchall()
+    res = []
+
+    for m in matches:
+        res.append(_db_to_dict(m))
+
+    return res
+
+
 def interfaces(addresses=False):
     """
     list network interfaces
@@ -394,6 +411,25 @@ def _scheme_to_dict(scheme):
     }
 
     return scheme_dict
+
+
+def _db_to_dict(match):
+    """
+    convert a database network entry to dictionary
+
+    :param match: database network entry
+    :return: the entry as dictionary
+    """
+
+    match_dict = {
+        "iface": match[0],
+        "ssid": match[1],
+        "passkey": match[2],
+        "lat": match[3],
+        "lng": match[4]
+    }
+
+    return match_dict
 
 
 def _network_in_range(iface, ssid):
