@@ -21,6 +21,7 @@ class WifiCoreTestCase(unittest.TestCase):
         self.db.commit()
 
         self.iface = 'wlan0'
+        self.gps_inf = -1000.0
 
     def tearDown(self):
         os.close(self.db_fd)
@@ -112,8 +113,8 @@ class WifiCoreTestCase(unittest.TestCase):
         lat, lng = core.get_last_location(avail, self.db)
         self.assertIsInstance(lat, float)
         self.assertIsInstance(lng, float)
-        self.assertEquals(lat, -1.0)
-        self.assertEquals(lng, -1.0)
+        self.assertEquals(lat, self.gps_inf)
+        self.assertEquals(lng, self.gps_inf)
 
     def test_3a_delete_all(self):
         total, deleted = core.delete_all(self.db, db_only=True)
@@ -124,8 +125,8 @@ class WifiCoreTestCase(unittest.TestCase):
         lat, lng = core.get_last_location(avail, self.db)
         self.assertIsInstance(lat, float)
         self.assertIsInstance(lng, float)
-        self.assertEquals(lat, -1.0)
-        self.assertEquals(lng, -1.0)
+        self.assertEquals(lat, self.gps_inf)
+        self.assertEquals(lng, self.gps_inf)
 
     def test_3c_disable(self):
         code = core.disable(self.iface)
