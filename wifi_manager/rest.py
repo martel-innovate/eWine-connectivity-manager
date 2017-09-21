@@ -84,18 +84,19 @@ def handle_sqlite_exception(e):
 
 
 @app.route('/networks')
-@app.route('/networks/<db>')
+@app.route('/networks/<gps>')
 @require_api_key
-def network_list(db=''):
+def network_list(gps=''):
     """
     return all schemes stored in /etc/network/interfaces
-    
+
+    :param gps: if non-empty, include GPS location in the response
     :return: JSON response
     """
 
-    db = bool(db)
+    gps = bool(gps)
 
-    if db:
+    if gps:
         stored = db_all(_get_db())
     else:
         stored = scheme_all()
@@ -110,6 +111,7 @@ def iface_list(addresses=''):
     """
     list network interfaces
 
+    :param addresses: if non-empty, include IP addresses in the response
     :return: JSON response
     """
 
@@ -259,7 +261,7 @@ def network_delete(iface, ssid, test=''):
 
     :param iface: network interface
     :param ssid: network name
-    :param test: for tests only
+    :param test: if non-empty, perform deletion in the database only (for tests)
     :return: JSON response
     """
 
@@ -275,7 +277,7 @@ def network_delete_all(test=''):
     """
     delete all connection schemes from /etc/network/interfaces and sqlite database
 
-    :param test: for tests only
+    :param test: if non-empty, perform deletion in the database only (for tests)
     :return: JSON response
     """
 

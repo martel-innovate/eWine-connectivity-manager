@@ -20,8 +20,9 @@ Here is a list of all API requests, the parameters they accept, and their purpos
 | Request | Parameters | Purpose |
 | --- | --- | --- |
 | GET /networks |  | retrieve all network configurations stored in /etc/network/interfaces |
+| GET /networks/gps |  | retrieve all network configurations stored in /etc/network/interfaces, including GPS location |
 | GET /ifaces |  | retrieve all active network interfaces |
-| GET /ifaces/`<addresses>` | `addresses`: a non empty string  | retrieve all active network interfaces and their IP addresses |
+| GET /ifaces/addr |  | retrieve all active network interfaces and their IP addresses |
 | GET /scan/`<iface>` | `iface`: the wifi network interface | scan a network interface for available wifi networks |
 | GET /status/`<iface>` | `iface`: the wifi network interface | find whether the given interface is connected to a network |
 | GET /available/`<iface>` | `iface`: the wifi network interface | find the best Wi-Fi network available, if any |
