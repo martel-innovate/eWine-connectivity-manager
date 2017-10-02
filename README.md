@@ -13,9 +13,12 @@ Make sure [pip][2] is installed on your system, then set up the environment:
 Launch the app by running the bash script: `wifi_manager/interpreter/python_wifi.sh`.
 
 #### Option 2: venv install
-Create a virtual environment:
+Create a virtual environment and install the requirements:
 
     virtualenv -p /usr/bin/python .venv
+    . .venv/bin/activate
+    pip install -r requirements.txt
+    deactivate
 
 Launch the app by running the bash script: `wifi_manager/interpreter/python_venv.sh`.
 
