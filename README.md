@@ -5,12 +5,21 @@ The app exposes a REST API to control wifi connectivity. Using the right network
 
 The app runs with [Python 2.7][1].
 
+#### Option 1: system install
 Make sure [pip][2] is installed on your system, then set up the environment:
 
     pip install -r requirements.txt
 
 Launch the app by running the bash script: `wifi_manager/interpreter/python_wifi.sh`.
 
+#### Option 2: venv install
+Create a virtual environment:
+
+    virtualenv -p /usr/bin/python .venv
+
+Launch the app by running the bash script: `wifi_manager/interpreter/python_venv.sh`.
+
+#### REST API specification
 The app listens by default on port 5000. Every request to the REST API must include the following header:
 
     X-Api-Key: <API KEY HERE>
