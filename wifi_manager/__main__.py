@@ -10,7 +10,7 @@ app.config['DB_PATH'] = os.path.join(os.getcwd(), 'wifi_manager/schema')
 app.config['DB_SOURCE'] = os.path.join(app.config['DB_PATH'], 'schema.sql')
 app.config['DB_INSTANCE'] = os.path.join(app.config['DB_PATH'], 'schema.db')
 
-app.config['DEBUG'] = True
+app.config['DEBUG'] = False
 
 init_db()
 app.run(host='0.0.0.0')
