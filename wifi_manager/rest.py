@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import Flask, request, g, jsonify
-from core import *
+import core
 import sqlite3
 
 app = Flask(__name__)
@@ -68,7 +68,7 @@ def _close_connection(exception):
         db.close()
 
 
-@app.errorhandler(WifiException)
+@app.errorhandler(core.WifiException)
 def handle_wifi_exception(e):
     resp = jsonify(message=e.message, code=e.code)
     resp.status_code = e.code
@@ -97,9 +97,9 @@ def network_list(gps=''):
     gps = bool(gps)
 
     if gps:
-        stored = db_all(_get_db())
+        stored = core.db_all(_get_db())
     else:
-        stored = scheme_all()
+        stored = core.scheme_all()
 
     return jsonify(message=stored, code=200)
 
@@ -115,7 +115,7 @@ def iface_list(addresses=''):
     :return: JSON response
     """
 
-    ifaces = interfaces(bool(addresses))
+    ifaces = core.interfaces(bool(addresses))
 
     return jsonify(message=ifaces, code=200)
 
@@ -130,7 +130,7 @@ def network_scan(iface):
     :return: JSON response
     """
 
-    cells = cell_all(iface)
+    cells = core.cell_all(iface)
 
     return jsonify(message=cells, code=200)
 
@@ -145,7 +145,7 @@ def network_status(iface):
     :return: JSON response
     """
 
-    ssid = status(str(iface))
+    ssid = core.status(str(iface))
 
     return jsonify(message=ssid, code=200)
 
@@ -159,7 +159,7 @@ def network_available(iface):
     :return: JSON response
     """
 
-    avail = available(iface)
+    avail = core.available(iface)
 
     return jsonify(message=avail, code=200)
 
@@ -174,7 +174,7 @@ def network_location(ssid):
     :return: JSON response
     """
 
-    lat, lng = get_last_location(ssid, _get_db())
+    lat, lng = core.get_last_location(ssid, _get_db())
 
     return jsonify(message='{},{}'.format(lat, lng), code=200)
 
@@ -189,7 +189,7 @@ def network_enable(iface):
     :return: JSON response
     """
 
-    enable(iface)
+    core.enable(iface)
 
     return jsonify(message='enabled {}'.format(iface), code=200)
 
@@ -204,7 +204,7 @@ def network_disable(iface):
     :return: JSON response
     """
 
-    disable(iface)
+    core.disable(iface)
 
     return jsonify(message='disabled {}'.format(iface), code=200)
 
@@ -224,7 +224,7 @@ def network_save(iface, ssid, lat, lng, passkey=None):
     :return: JSON response
     """
 
-    save(iface, ssid, passkey, _get_db(), float(lat), float(lng))
+    core.save(iface, ssid, passkey, _get_db(), float(lat), float(lng))
 
     code = 201
     resp = jsonify(message='created {}:{}'.format(iface, ssid), code=code)
@@ -247,7 +247,7 @@ def network_connect(iface, ssid, lat, lng, passkey=None):
     :return: JSON response
     """
 
-    connect(iface, ssid, passkey, _get_db(), float(lat), float(lng))
+    core.connect(iface, ssid, passkey, _get_db(), float(lat), float(lng))
 
     return jsonify(message='connected {}:{}'.format(iface, ssid), code=200)
 
@@ -265,7 +265,7 @@ def network_delete(iface, ssid, test=''):
     :return: JSON response
     """
 
-    delete(iface, ssid, _get_db(), db_only=bool(test))
+    core.delete(iface, ssid, _get_db(), db_only=bool(test))
 
     return jsonify(message='deleted {}:{}'.format(iface, ssid), code=200)
 
@@ -281,6 +281,6 @@ def network_delete_all(test=''):
     :return: JSON response
     """
 
-    total, deleted = delete_all(_get_db(), db_only=bool(test))
+    total, deleted = core.delete_all(_get_db(), db_only=bool(test))
 
     return jsonify(message='deleted {}/{} schemes'.format(total, deleted), code=200)
