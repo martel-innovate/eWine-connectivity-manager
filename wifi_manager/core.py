@@ -480,7 +480,7 @@ def _get_hashed_passkey(scheme, cell):
     :return: the hashed passkey
     """
 
-    if cell.encryption_type:
+    if cell.encrypted:
         if cell.encryption_type.startswith('wpa'):
             passkey = scheme.options['wpa-psk']
         elif cell.encryption_type == 'wep':
