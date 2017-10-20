@@ -485,6 +485,8 @@ def _get_hashed_passkey(scheme, cell):
             passkey = scheme.options['wpa-psk']
         elif cell.encryption_type == 'wep':
             passkey = scheme.options['wireless-key']
+        else:
+            raise WifiException("encryption type {}: configuration not implemented".format(cell.encryption_type), 501)
     else:
         passkey = ''
 
