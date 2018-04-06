@@ -1,3 +1,9 @@
 Flask
-git+https://github.com/martel-innovate/wifi.git@rpi-fix
+
+#In case of error, comment this line
+wifi
+
+#In case of error, uncomment this line
+#git+https://github.com/martel-innovate/wifi.git@rpi-fix
+
 python-wifi

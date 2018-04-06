@@ -4,7 +4,7 @@ from context import rest
 import os
 import unittest
 import tempfile
-
+import time
 
 class WifiRestTestCase(unittest.TestCase):
     """
@@ -36,16 +36,19 @@ class WifiRestTestCase(unittest.TestCase):
         self.gps_inf = -1000.0
 
     def tearDown(self):
+        time.sleep(20)
         os.close(self.db_fd)
         os.unlink(rest.app.config['DB_INSTANCE'])
 
     def test_0a_disable(self):
+        time.sleep(20)
         resp = self.app.post('/disable/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertEquals(resp_dict['message'], 'disabled {}'.format(self.iface))
 
     def test_0b_scan(self):
+        time.sleep(20)
         resp = self.app.get('/scan/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
@@ -54,6 +57,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertTrue(self.netdown in msg)
 
     def test_0c_available(self):
+        time.sleep(20)
         resp = self.app.get('/available/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
@@ -62,6 +66,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertTrue(self.netdown in msg)
 
     def test_0d_save(self):
+        time.sleep(20)
         resp = self.app.post('/networks/{}:foo:{}:{}'.format(self.iface, self.gps_inf, self.gps_inf),
                              headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
@@ -71,6 +76,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertTrue(self.netdown in msg)
 
     def test_0e_connect(self):
+        time.sleep(20)
         resp = self.app.post('/connect/{}:foo:{}:{}'.format(self.iface, self.gps_inf, self.gps_inf),
                              headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
@@ -80,18 +86,21 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertTrue(self.netdown in msg)
 
     def test_1a_enable(self):
+        time.sleep(20)
         resp = self.app.post('/enable/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertEquals(resp_dict['message'], 'enabled {}'.format(self.iface))
 
     def test_1b_scan(self):
+        time.sleep(20)
         resp = self.app.get('/scan/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertIsInstance(resp_dict['message'], list)
 
     def available_test(self):
+        time.sleep(20)
         resp = self.app.get('/available/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
@@ -100,6 +109,7 @@ class WifiRestTestCase(unittest.TestCase):
         return resp_dict['message']
 
     def test_1d_save(self):
+        time.sleep(20)
         avail = self.available_test()
         resp = self.app.post('/networks/{}:{}:{}:{}'.format(self.iface, avail, self.gps_inf, self.gps_inf),
                              headers={'X-Api-Key': rest.app.API_KEY})
@@ -108,6 +118,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertEquals(resp_dict['message'], self.netsaved.format(self.iface, avail))
 
     def test_1e_connect(self):
+        time.sleep(20)
         avail = self.available_test()
         resp = self.app.post('/connect/{}:{}:{}:{}'.format(self.iface, avail, self.gps_inf, self.gps_inf),
                              headers={'X-Api-Key': rest.app.API_KEY})
@@ -116,6 +127,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertEquals(resp_dict['message'], self.netconnected.format(self.iface, avail))
 
     def test_1f_location(self):
+        time.sleep(20)
         avail = self.available_test()
         resp = self.app.get('/location/{}'.format(avail), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
@@ -130,6 +142,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertTrue(lng, self.gps_inf)
 
     def stored_networks(self):
+        time.sleep(20)
         resp = self.app.get('/networks', headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
@@ -137,6 +150,7 @@ class WifiRestTestCase(unittest.TestCase):
         return len(resp_dict['message'])
 
     def test_2a_delete_all(self):
+        time.sleep(20)
         n = self.stored_networks()
         resp = self.app.delete('/networks/test', headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
@@ -144,12 +158,14 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertEquals(resp_dict['message'], self.netalldeleted.format(n, n))
 
     def test_2b_delete(self):
+        time.sleep(20)
         resp = self.app.delete('/networks/{}:foo'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 404)
         self.assertEquals(resp_dict['message'], self.netnotfound.format('foo'))
 
     def test_2c_location(self):
+        time.sleep(20)
         avail = self.available_test()
         resp = self.app.get('/location/{}'.format(avail), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
@@ -164,12 +180,14 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertEquals(lng, self.gps_inf)
 
     def test_2d_disable(self):
+        time.sleep(20)
         resp = self.app.post('/disable/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertEquals(resp_dict['message'], 'disabled {}'.format(self.iface))
 
     def single_test_api_key(self, route, method):
+        time.sleep(20)
         if method == 'GET':
             resp = self.app.get(route)
         elif method == 'POST':
@@ -183,6 +201,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertEqual(resp_dict['code'], 401)
 
     def test_all_api_key(self):
+        time.sleep(20)
         self.single_test_api_key('/networks', 'GET')
         self.single_test_api_key('/ifaces', 'GET')
         self.single_test_api_key('/scan/{}'.format(self.iface), 'GET')
@@ -197,12 +216,14 @@ class WifiRestTestCase(unittest.TestCase):
         self.single_test_api_key('/networks', 'DELETE')
 
     def test_networks(self):
+        time.sleep(20)
         resp = self.app.get('/networks', headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)
         self.assertIsInstance(resp_dict['message'], list)
 
     def test_ifaces(self):
+        time.sleep(20)
         resp1 = self.app.get('/ifaces', headers={'X-Api-Key': rest.app.API_KEY})
         resp1_dict = json.loads(resp1.get_data())
         self.assertEquals(resp1_dict['code'], 200)
@@ -214,6 +235,7 @@ class WifiRestTestCase(unittest.TestCase):
         self.assertIsInstance(resp2_dict['message'], list)
 
     def test_status(self):
+        time.sleep(20)
         resp = self.app.get('/status/{}'.format(self.iface), headers={'X-Api-Key': rest.app.API_KEY})
         resp_dict = json.loads(resp.get_data())
         self.assertEquals(resp_dict['code'], 200)

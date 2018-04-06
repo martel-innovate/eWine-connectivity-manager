@@ -1,28 +1,37 @@
-
-## Wifi Connectivity Manager
+# Wifi Connectivity Manager
 
 The app exposes a REST API to control wifi connectivity. Using the right network interface, it is possible to connect and disconnect from wifi networks, but also store and manage network configurations in /etc/network/interfaces and in a Sqlite3 database.
 
 The app runs with [Python 2.7][1].
 
-#### Option 1: system install
+## INSTALLATION
+
+### Option 1: system install
+
 Make sure [pip][2] is installed on your system, then set up the environment:
 
     pip install -r requirements.txt
 
 Launch the app by running the bash script: `wifi_manager/interpreter/python_wifi.sh`.
 
-#### Option 2: venv install
+### Option 2: venv install
+
 Create a virtual environment and install the requirements:
 
     virtualenv -p /usr/bin/python .venv
     . .venv/bin/activate
     pip install -r requirements.txt
+    # At the end of installation
     deactivate
 
-Launch the app by running the bash script: `wifi_manager/interpreter/python_venv.sh`.
+## RUNNING
 
-#### REST API specification
+Launch the app by running the bash script: `wifi_manager/interpreter/python_venv.sh`.
+In other shell tab, launch this command: . .venv/bin/activate
+
+
+## REST API specification
+
 The app listens by default on port 5000. Every request to the REST API must include the following header:
 
     X-Api-Key: <API KEY HERE>
