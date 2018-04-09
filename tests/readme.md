@@ -13,9 +13,9 @@ In the 1st shell :
 	$ wifi list			#once time command to check if your wifi connection is stored
 	$ wifi add yournamewifi SSID	#USE this command ONLY if your wifi connection is not in the list --- more information ../wifi/docs/wifi_command.rst
 	$ cd tests
-	$ sudo test_core.py		#launch test
+	$ sudo python test_core.py		#launch test
 
 	if the test fails, try to launch these commands:
 		sudo ifup wlan0
 		sudo wifi connect SSID		#even if your wireless card is already connected
-		sudo test_core.py		#launch test
+		sudo python test_core.py		#launch test
