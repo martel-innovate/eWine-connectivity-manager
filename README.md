@@ -1,4 +1,3 @@
-
 ## Wifi Connectivity Manager
 
 The app exposes a REST API to control wifi connectivity. Using the right network interface, it is possible to connect and disconnect from wifi networks, but also store and manage network configurations in /etc/network/interfaces and in a Sqlite3 database.
